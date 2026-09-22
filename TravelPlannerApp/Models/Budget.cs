@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-namespace TravelPlanner.Models
+namespace TravelPlannerApp.Models
 {
     public class Budget
     {

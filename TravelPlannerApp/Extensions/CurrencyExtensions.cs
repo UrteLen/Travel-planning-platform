@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace TravelPlanner.Extensions
+namespace TravelPlannerApp.Extensions
 {
     public static class CurrencyExtensions
     {

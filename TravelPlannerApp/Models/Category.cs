@@ -1,4 +1,4 @@
-namespace  TravelPlanner.Models
+namespace  TravelPlannerApp.Models
 {
     public enum Category
     {

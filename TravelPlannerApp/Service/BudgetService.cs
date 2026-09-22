@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using TravelPlanner.Extensions;
-using TravelPlanner.Models;
+using TravelPlannerApp.Extensions;
+using TravelPlannerApp.Models;
 
-namespace TravelPlanner.Budgeting
+namespace TravelPlannerApp.Budgeting
 {
     public static class BudgetService
     {

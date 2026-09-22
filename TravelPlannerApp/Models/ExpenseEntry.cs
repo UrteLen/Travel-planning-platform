@@ -1,6 +1,6 @@
 using System;
 
-namespace TravelPlanner.Models
+namespace TravelPlannerApp.Models
 {
     public record ExpenseEntry(decimal Amount, Category Category, DateTime Date);
 }
