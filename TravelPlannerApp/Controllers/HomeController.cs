@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using TravelPlannerApp.Models;
+using TravelPlannerApp.Budgeting;
 
 namespace TravelPlannerApp.Controllers;
 
