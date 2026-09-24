@@ -3,8 +3,7 @@ namespace TravelPlannerApp.Models
     public enum UserRole
     {
         Organizer,
-        Participant,
-        ViewOnly
+        Participant
     }
 
     public class Participant
@@ -13,5 +12,16 @@ namespace TravelPlannerApp.Models
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public UserRole Role { get; set; } = UserRole.Participant;
+
+        public bool CanManageParticipants()
+        {
+            return Role == UserRole.Organizer;
+        }
+
+        public bool CanEditBudget()
+        {
+            return Role == UserRole.Organizer;
+        }
     }
+
 }
