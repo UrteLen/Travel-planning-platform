@@ -1,6 +1,0 @@
-@TravelPlannerApp_HostAddress = http://localhost:5291
-
-GET {{TravelPlannerApp_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
