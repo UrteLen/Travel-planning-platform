@@ -1,11 +1,5 @@
 namespace TravelPlannerApp.Models
 {
-    public enum UserRole
-    {
-        Organizer,
-        Participant
-    }
-
     public class Participant
     {
         public Guid Id { get; init; } = Guid.NewGuid();
