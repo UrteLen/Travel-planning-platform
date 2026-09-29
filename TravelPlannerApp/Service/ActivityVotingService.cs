@@ -38,4 +38,27 @@ public class ActivityVotingService
             .OrderByDescending(activity => GetVoteCount(activity.Id))
             .ToList();
     }
+    public List<TripActivity> SelectActivitiesForPlan(IEnumerable<TripActivity> activities, decimal availableBudget, TimeSpan availableTime)
+    {
+        var prioritizedActivities = PrioritizeByVotes(activities);
+        var selectedActivities = new List<TripActivity>();
+
+        decimal usedBudget = 0m;
+        TimeSpan usedTime = TimeSpan.Zero;
+
+        foreach (var activity in prioritizedActivities)
+        {
+            bool fitsBudget = usedBudget + activity.EstimatedCost <= availableBudget;
+            bool fitsTime = usedTime + activity.Duration <= availableTime;
+
+            if (fitsBudget && fitsTime)
+            {
+                selectedActivities.Add(activity);
+
+                usedBudget += activity.EstimatedCost;
+                usedTime += activity.Duration;
+            }
+        }
+        return selectedActivities;
+    }
 }
