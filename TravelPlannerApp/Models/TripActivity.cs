@@ -9,6 +9,8 @@ public class TripActivity
     public TimeSpan Duration { get; set; }
     public decimal EstimatedCost { get; set; }
     public bool IsOptional { get; set; }
+    public TimeSpan? OpeningTime { get; set; }
+    public TimeSpan? ClosingTime { get; set; }
 
     public TripActivity(
     string name,
@@ -36,7 +38,7 @@ public class TripActivity
                 "Estimated cost cannot be negative.",
                 nameof(estimatedCost));
         }
-        
+
         Name = name;
         Category = category;
         Location = location;
