@@ -29,4 +29,12 @@ public class ActivitySchedulingService
 
         return startTime < openingTime || endTime > closingTime;
     }
+
+    public List<ScheduledActivity> GetDailySchedule(IEnumerable<ScheduledActivity> activities, DateTime date)
+    {
+        return activities
+            .Where(activity => activity.StartTime.Date == date.Date)
+            .OrderBy(activity => activity.StartTime)
+            .ToList();
+    }
 }
