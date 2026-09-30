@@ -10,8 +10,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+<<<<<<< Updated upstream
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+=======
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+>>>>>>> Stashed changes
 builder.Services.AddControllers();
 
 var app = builder.Build();
