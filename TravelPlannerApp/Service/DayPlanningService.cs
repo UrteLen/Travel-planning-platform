@@ -36,15 +36,15 @@ namespace TravelPlannerApp.Service
                 {
                     break;
                 } 
-                double bestDistance = currentLocation.DistanceTo(best.Location);
+                double bestDistance = currentLocation.DistanceTo(bestPlace.Location);
                 TimeSpan travelTime = bestDistance.TimeTo(speedKmh);
                 DateTime arrivalTime = currentTime + travelTime;
-                DateTime departureTime = arrivalTime + best.VisitDuration;
+                DateTime departureTime = arrivalTime + bestPlace.VisitDuration;
 
                 plan.Add(new PlannedVisit(best, arrivalTime, departureTime));
                 currentLocation = best.Location;
                 currentTime = departureTime;
-                remainingPlaces.Remove(best);
+                remainingPlaces.Remove(bestPlace);
 
             }
             return plan;
