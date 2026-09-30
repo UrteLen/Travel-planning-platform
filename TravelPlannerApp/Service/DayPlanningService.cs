@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using TravelPlannerApp.Models;
 using TravelPlannerApp.Extensions;
@@ -16,40 +15,38 @@ namespace TravelPlannerApp.Service
 
             while (remainingPlaces.Count > 0)
             {
-                Place best = null;
+                Place bestPlace = null;
                 double shortestDistance = double.MaxValue;
 
                 foreach (Place candidate in remainingPlaces)
                 {
                     double newDistance = currentLocation.DistanceTo(candidate.Location);
                     TimeSpan newTime = newDistance.TimeTo(speedKmh);
-
                     if (GeoLocationExtensions.CanVisit(currentTime, candidate, newTime))
                     {
                         if (newDistance < shortestDistance)
                         {
                             shortestDistance = newDistance;
-                            best = candidate;
+                            bestPlace = candidate;
                         }
                     }
-                }
 
-                if (best == null)
+                }
+                if (bestPlace == null)
                 {
                     break;
-                }
-
-                double bestDistance = currentLocation.DistanceTo(best.Location);
+                } 
+                double bestDistance = currentLocation.DistanceTo(bestPlace.Location);
                 TimeSpan travelTime = bestDistance.TimeTo(speedKmh);
                 DateTime arrivalTime = currentTime + travelTime;
-                DateTime departureTime = arrivalTime + best.VisitDuration;
+                DateTime departureTime = arrivalTime + bestPlace.VisitDuration;
 
-                plan.Add(new PlannedVisit(best, arrivalTime, departureTime));
-                currentLocation = best.Location;
+                plan.Add(new PlannedVisit(bestPlace, arrivalTime, departureTime));
+                currentLocation = bestPlace.Location;
                 currentTime = departureTime;
-                remainingPlaces.Remove(best);
-            }
+                remainingPlaces.Remove(bestPlace);
 
+            }
             return plan;
         }
     }
