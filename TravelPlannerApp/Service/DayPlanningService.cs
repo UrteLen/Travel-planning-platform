@@ -32,7 +32,7 @@ namespace TravelPlannerApp.Service
                     }
 
                 }
-                if (best == null)
+                if (bestPlace == null)
                 {
                     break;
                 } 
