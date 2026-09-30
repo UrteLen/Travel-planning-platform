@@ -22,7 +22,7 @@ namespace TravelPlannerApp.Service
                 {
                     double newDistance = currentLocation.DistanceTo(candidate.Location);
                     TimeSpan newTime = newDistance.TimeTo(speedKmh);
-                    if (CanVisit(currentTime, candidate, newTime))
+                    if (GeoLocationExtensions.CanVisit(currentTime, candidate, newTime))
                     {
                         if (newDistance < shortestDistance)
                         {
@@ -32,7 +32,7 @@ namespace TravelPlannerApp.Service
                     }
 
                 }
-                if (bestPlace == null)
+                if (best == null)
                 {
                     break;
                 } 
@@ -44,12 +44,10 @@ namespace TravelPlannerApp.Service
                 plan.Add(new PlannedVisit(best, arrivalTime, departureTime));
                 currentLocation = best.Location;
                 currentTime = departureTime;
-                remainingPlaces.Remove(bestPlace);
-
-
-                return plan;
+                remainingPlaces.Remove(best);
 
             }
+            return plan;
         }
     }
 }
