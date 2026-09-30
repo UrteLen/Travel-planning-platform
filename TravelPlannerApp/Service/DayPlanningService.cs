@@ -32,7 +32,7 @@ namespace TravelPlannerApp.Service
                     }
 
                 }
-                if (best == null)
+                if (bestPlace == null)
                 {
                     break;
                 } 
@@ -44,7 +44,7 @@ namespace TravelPlannerApp.Service
                 plan.Add(new PlannedVisit(best, arrivalTime, departureTime));
                 currentLocation = best.Location;
                 currentTime = departureTime;
-                remainingPlaces.Remove(best);
+                remainingPlaces.Remove(bestPlace);
 
 
                 return plan;
