@@ -42,7 +42,7 @@ namespace TravelPlannerApp.Service
                 DateTime departureTime = arrivalTime + bestPlace.VisitDuration;
 
                 plan.Add(new PlannedVisit(bestPlace, arrivalTime, departureTime));
-                currentLocation = best.Location;
+                currentLocation = bestPlace.Location;
                 currentTime = departureTime;
                 remainingPlaces.Remove(bestPlace);
 
