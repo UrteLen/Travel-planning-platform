@@ -50,10 +50,17 @@ public class ActivitySchedulingService
                scheduled.EndTime > closingDateTime;
     }
 
-    public List<ScheduledActivity> GetDailySchedule(IEnumerable<ScheduledActivity> activities, DateTime date)
+    public List<ScheduledActivity> GetDailySchedule(
+        IEnumerable<ScheduledActivity> activities,
+        DateTime date)
     {
+        var dayStart = date.Date;
+        var dayEnd = dayStart.AddDays(1);
+
         return activities
-            .Where(activity => activity.StartTime.Date == date.Date)
+            .Where(activity =>
+                activity.StartTime < dayEnd &&
+                activity.EndTime > dayStart)
             .OrderBy(activity => activity.StartTime)
             .ToList();
     }
