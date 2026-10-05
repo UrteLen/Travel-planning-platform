@@ -3,7 +3,7 @@ using System.Linq;
 using TravelPlanner.Extensions;
 using TravelPlanner.Models;
 
-namespace TravelPlanner.Budgeting
+namespace TravelPlanner.Service
 {
     public static class BudgetService
     {
