@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import './App.css';
 
-const API_BASE = import.meta.env.VITE_API_URL 
-  ? `\({import.meta.env.VITE_API_URL.replace(/\/\)/, '')}/api/budgetapi` 
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api/budgetapi`
   : 'http://localhost:5154/api/budgetapi';
-
+  
 function App() {
   const featuresRef = useRef(null);
 
