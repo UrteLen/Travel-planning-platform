@@ -1,11 +1,5 @@
 namespace TravelPlanner.Models
 {
-    public enum UserRole
-    {
-        Organizer,
-        Participant
-    }
-
     public class Participant
     {
         public Guid Id { get; init; } = Guid.NewGuid();
@@ -23,5 +17,4 @@ namespace TravelPlanner.Models
             return Role == UserRole.Organizer;
         }
     }
-
 }
