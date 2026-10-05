@@ -9,9 +9,15 @@ public class ActivitySchedulingService
         return first.StartTime < second.EndTime && second.StartTime < first.EndTime;
     }
 
-    public bool HasTravelTimeConflict(ScheduledActivity first, ScheduledActivity second, TimeSpan travelTime)
+    public bool HasTravelTimeConflict(
+        ScheduledActivity first,
+        ScheduledActivity second,
+        TimeSpan travelTime)
     {
-        return first.EndTime + travelTime > second.StartTime;
+        var earlier = first.StartTime <= second.StartTime ? first : second;
+        var later = first.StartTime <= second.StartTime ? second : first;
+
+        return earlier.EndTime + travelTime > later.StartTime;
     }
 
     public bool HasOpeningHoursConflict(ScheduledActivity scheduled)
