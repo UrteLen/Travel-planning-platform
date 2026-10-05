@@ -20,14 +20,34 @@ public class ActivitySchedulingService
         var closingTime = scheduled.Activity.ClosingTime;
 
         if (openingTime == null || closingTime == null)
-        {
             return false;
+
+        DateTime openingDateTime;
+        DateTime closingDateTime;
+
+        if (closingTime.Value > openingTime.Value)
+        {
+            // Opens and closes on the same day
+            openingDateTime = scheduled.StartTime.Date + openingTime.Value;
+            closingDateTime = scheduled.StartTime.Date + closingTime.Value;
+        }
+        else
+        {
+            // Closing time is after midnight
+            if (scheduled.StartTime.TimeOfDay >= openingTime.Value)
+            {
+                openingDateTime = scheduled.StartTime.Date + openingTime.Value;
+                closingDateTime = scheduled.StartTime.Date.AddDays(1) + closingTime.Value;
+            }
+            else
+            {
+                openingDateTime = scheduled.StartTime.Date.AddDays(-1) + openingTime.Value;
+                closingDateTime = scheduled.StartTime.Date + closingTime.Value;
+            }
         }
 
-        TimeSpan startTime = scheduled.StartTime.TimeOfDay;
-        TimeSpan endTime = scheduled.EndTime.TimeOfDay;
-
-        return startTime < openingTime || endTime > closingTime;
+        return scheduled.StartTime < openingDateTime ||
+               scheduled.EndTime > closingDateTime;
     }
 
     public List<ScheduledActivity> GetDailySchedule(IEnumerable<ScheduledActivity> activities, DateTime date)
