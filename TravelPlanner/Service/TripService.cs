@@ -51,6 +51,11 @@ namespace TravelPlanner.Services
             return _trips.FirstOrDefault(t => t.InviteCode == inviteCode);
         }
 
+        public static Trip? FindTripById(Guid tripId)
+        {
+            return _trips.FirstOrDefault(t => t.Id == tripId);
+        }
+
         public static string GenerateInviteCode()
         {
             return Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
