@@ -14,6 +14,8 @@ namespace TravelPlanner.Controllers
     {
         public decimal Amount { get; set; }
         public string Category { get; set; }
+        public Guid ParticipantId { get; set; }
+        public string TripCode { get; set; }
     }
 
     [ApiController]
@@ -48,7 +50,15 @@ namespace TravelPlanner.Controllers
             if (!Enum.TryParse<Category>(request.Category, true, out var category))
                 return BadRequest(new { error = "Invalid category" });
 
-            _budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now));
+            var trip = TripService.FindTripByCode(request.TripCode);
+
+            if (trip == null)
+                return BadRequest(new { error = "Trip not found" });
+
+            if (!trip.Participants.TryGetValue(request.ParticipantId, out var participant))
+                return BadRequest(new { error = "Participant not found" });
+
+            _budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
             return Ok(new { message = "Expense added" });
         }
 
@@ -63,19 +73,19 @@ namespace TravelPlanner.Controllers
             return Ok(new { results, costPerPerson });
         }
 
-        [HttpGet("checkall")]
-        public IActionResult CheckAll()
-        {
-            var budget = new Budget
-            {
-                CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } },
-                NumberOfParticipants = 3
-            };
-            budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now));
+        // [HttpGet("checkall")]
+        // public IActionResult CheckAll()
+        // {
+        //     var budget = new Budget
+        //     {
+        //         CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } },
+        //         NumberOfParticipants = 3
+        //     };
+        //     budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now));
 
-            var results = BudgetService.CheckAllCategories(budget);
-            return Ok(results);
-        }
+        //     var results = BudgetService.CheckAllCategories(budget);
+        //     return Ok(results);
+        // }
 
         [HttpGet("create")]
         public IActionResult Create()
