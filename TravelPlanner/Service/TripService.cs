@@ -1,6 +1,6 @@
 using TravelPlanner.Models;
 
-namespace TravelPlanner.Services
+namespace TravelPlanner.Service
 {
     public static class TripService
     {
@@ -21,7 +21,7 @@ namespace TravelPlanner.Services
                 StartDate = startDate,
                 EndDate = endDate,
                 InviteCode = GenerateInviteCode(),
-                Participants = new List<Participant> { organizer }
+                Participants = new Dictionary<Guid, Participant> { { organizer.Id, organizer } }
             };
 
             _trips.Add(trip);
@@ -42,7 +42,7 @@ namespace TravelPlanner.Services
                 Role = role
             };
 
-            trip.Participants.Add(newParticipant);
+            trip.Participants.Add(newParticipant.Id, newParticipant);
             return trip;
         }
 
