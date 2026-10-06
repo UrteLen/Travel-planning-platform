@@ -1,6 +1,6 @@
 using TravelPlanner.Models;
 using TravelPlanner.Extensions;
-
+using System.Linq;
 namespace TravelPlanner.Service
 {
     public static class SettlementService
@@ -22,20 +22,53 @@ namespace TravelPlanner.Service
             {
                 var participant = participantList[i];
 
-                decimal paid = 0;
-                foreach (var e in budget.Expenses)
-                {
-                    if (e.Participant.Id == participant.Id)
-                    {
-                        paid += e.Amount;
-                    }
-                }
+                decimal paid = budget.Expenses
+                    .Where(e => e.Participant.Id == participant.Id)
+                    .Sum(e => e.Amount);
 
                 balances[participant.Id] = paid - shares[i];
             }
 
             return balances;
         }
+
+        public static List<Settlement> SimplifyDebts(Dictionary<Guid, decimal> balances)
+        {
+            var settlements = new List<Settlement>();
+
+            var debtors = balances
+                .Where(b => b.Value < 0)
+                .ToDictionary(b => b.Key, b => -b.Value);
+
+            var creditors = balances
+                .Where(b => b.Value > 0)
+                .ToDictionary(b => b.Key, b => b.Value);
+
+            while (debtors.Count > 0 && creditors.Count > 0)
+            {
+                var debtor = debtors.OrderByDescending(d => d.Value).First();
+                var creditor = creditors.OrderByDescending(d => d.Value).First();
+
+                var amount = Math.Min(debtor.Value, creditor.Value);
+
+                settlements.Add(new Settlement(debtor.Key, creditor.Key, amount));
+
+                debtors[debtor.Key] -= amount;
+                creditors[creditor.Key] -= amount;
+
+                if (debtors[debtor.Key] == 0)
+                {
+                    debtors.Remove(debtor.Key);
+                }
+
+                if(creditors[creditor.Key] == 0)
+                {
+                    creditors.Remove(creditor.Key);
+                }
+            }
+
+            return settlements;
+        }
     }
-    
+
 }
