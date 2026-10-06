@@ -14,6 +14,8 @@ namespace TravelPlanner.Controllers
     {
         public decimal Amount { get; set; }
         public string Category { get; set; }
+        public Guid ParticipantId { get; set; }
+        public string TripCode { get; set; }
     }
 
     [ApiController]
@@ -48,7 +50,15 @@ namespace TravelPlanner.Controllers
             if (!Enum.TryParse<Category>(request.Category, true, out var category))
                 return BadRequest(new { error = "Invalid category" });
 
-            _budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now));
+            var trip = TripService.FindTripByCode(request.TripCode);
+
+            if (trip == null)
+                return BadRequest(new { error = "Trip not found" });
+
+            if (!trip.Participants.TryGetValue(request.ParticipantId, out var participant))
+                return BadRequest(new { error = "Participant not found" });
+
+            _budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
             return Ok(new { message = "Expense added" });
         }
 
@@ -63,26 +73,54 @@ namespace TravelPlanner.Controllers
             return Ok(new { results, costPerPerson });
         }
 
-        [HttpGet("checkall")]
-        public IActionResult CheckAll()
+        [HttpGet("settlement")]
+        public IActionResult GetSettlement(string tripcode)
         {
-            var budget = new Budget
+            if (_budget == null)
             {
-                CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } },
-                NumberOfParticipants = 3
-            };
-            budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now));
+                return NotFound("No trip created yet");
+            }
 
-            var results = BudgetService.CheckAllCategories(budget);
-            return Ok(results);
+            var trip = TripService.FindTripByCode(tripcode);
+
+            if (trip == null)
+            {
+                return NotFound(new { error = "Trip not found"});
+            }
+
+            var balances = SettlementService.CalculateBalances(_budget, trip.Participants.Values);
+            var settlements = SettlementService.SimplifyDebts(balances);
+
+            var result = settlements.Select(s => new
+            {
+                from = trip.Participants[s.FromParticipantId].Name,
+                to = trip.Participants[s.ToParticipantId].Name,
+                amount = s.Amount
+            }).ToList();
+
+            return Ok(result);
         }
 
-        [HttpGet("create")]
-        public IActionResult Create()
-        {
-            Console.WriteLine("Yay. Cia viskas veikia.");
-            return Ok("As tikrai gyvas");
-        }
+        // [HttpGet("checkall")]
+        // public IActionResult CheckAll()
+        // {
+        //     var budget = new Budget
+        //     {
+        //         CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } },
+        //         NumberOfParticipants = 3
+        //     };
+        //     budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now));
+
+        //     var results = BudgetService.CheckAllCategories(budget);
+        //     return Ok(results);
+        // }
+
+        // [HttpGet("create")]
+        // public IActionResult Create()
+        // {
+        //     Console.WriteLine("Yay. Cia viskas veikia.");
+        //     return Ok("As tikrai gyvas");
+        // }
 
     }
 }
