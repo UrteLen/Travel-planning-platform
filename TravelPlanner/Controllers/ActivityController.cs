@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Models;
-using TravelPlanner.Services;
 using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers
