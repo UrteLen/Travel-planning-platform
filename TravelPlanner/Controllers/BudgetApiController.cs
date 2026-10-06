@@ -73,6 +73,34 @@ namespace TravelPlanner.Controllers
             return Ok(new { results, costPerPerson });
         }
 
+        [HttpGet("settlement")]
+        public IActionResult GetSettlement(string tripcode)
+        {
+            if (_budget == null)
+            {
+                return NotFound("No trip created yet");
+            }
+
+            var trip = TripService.FindTripByCode(tripcode);
+
+            if (trip == null)
+            {
+                return NotFound(new { error = "Trip not found"});
+            }
+
+            var balances = SettlementService.CalculateBalances(_budget, trip.Participants.Values);
+            var settlements = SettlementService.SimplifyDebts(balances);
+
+            var result = settlements.Select(s => new
+            {
+                from = trip.Participants[s.FromParticipantId].Name,
+                to = trip.Participants[s.ToParticipantId].Name,
+                amount = s.Amount
+            }).ToList();
+
+            return Ok(result);
+        }
+
         // [HttpGet("checkall")]
         // public IActionResult CheckAll()
         // {
@@ -87,12 +115,12 @@ namespace TravelPlanner.Controllers
         //     return Ok(results);
         // }
 
-        [HttpGet("create")]
-        public IActionResult Create()
-        {
-            Console.WriteLine("Yay. Cia viskas veikia.");
-            return Ok("As tikrai gyvas");
-        }
+        // [HttpGet("create")]
+        // public IActionResult Create()
+        // {
+        //     Console.WriteLine("Yay. Cia viskas veikia.");
+        //     return Ok("As tikrai gyvas");
+        // }
 
     }
 }
