@@ -179,7 +179,7 @@ function App() {
 
         <div className="feature-card active-card">
           <div className="feature-icon icon-blue">🖨️</div>
-          <h3>Fair Expense Splitting <span className="badge-live">LIVE DEMO</span></h3>
+          <h3>Fair Expense Splitting</h3>
           <div className="fc-desc">Track group spending, category limits, and cost-per-person calculation.</div>
 
           <div className="inner-panel">

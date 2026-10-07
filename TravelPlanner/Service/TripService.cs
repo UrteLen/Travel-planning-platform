@@ -1,6 +1,6 @@
 using TravelPlanner.Models;
 
-namespace TravelPlanner.Services
+namespace TravelPlanner.Service
 {
     public static class TripService
     {

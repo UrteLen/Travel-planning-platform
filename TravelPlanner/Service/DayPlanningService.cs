@@ -48,6 +48,16 @@ namespace TravelPlanner.Service
 
             }
             return plan;
+
+        }
+        public static PlannedVisit SuggestReplacement(List<Place> candidates, GeoLocation currentLocation, DateTime currentTime, double speedKmh)
+        {
+                List<PlannedVisit> result = DayPlan(candidates, currentLocation, currentTime, speedKmh);
+                if(result.Count == 0)
+                {
+                    throw new ArgumentException("Replacement not found");
+                }
+                return result.First();
         }
     }
 }

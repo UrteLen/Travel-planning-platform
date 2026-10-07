@@ -83,6 +83,17 @@ namespace TravelPlanner.Controllers
             Console.WriteLine("Yay. Cia viskas veikia.");
             return Ok("As tikrai gyvas");
         }
+        [HttpGet("export")]
+        public IActionResult ExportSummary()
+        {
+            if (_budget == null)
+                return BadRequest(new { error = "No trip created yet" });
+
+            var summary = SummaryService.GenerateSummary(_budget, new List<PlannedVisit>());
+            var pdfBytes = PdfExportService.ExportToPdf(summary);
+
+            return File(pdfBytes, "application/pdf", "trip-summary.pdf");
+        }
 
     }
 }
