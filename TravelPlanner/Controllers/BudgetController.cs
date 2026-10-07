@@ -105,7 +105,21 @@ namespace TravelPlanner.Controllers
 
             return "Unknown participant";
         }
+        [HttpGet("export/{tripId}")]
+        public IActionResult ExportSummary(Guid tripId)
+        {
+            var trip = TripService.FindTripById(tripId);
+            if (trip is null || trip.Budget is null)
+            {
+                return NotFound(new { error = "Trip or budget not found" });
+            }
 
+            int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
+            var summary = SummaryService.GenerateSummary(trip.Budget, new List<PlannedVisit>(), participantCount);
+            var pdfBytes = PdfExportService.ExportToPdf(summary);
+
+            return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
+        }
         // [HttpGet("checkall")]
         // public IActionResult CheckAll()
         // {
