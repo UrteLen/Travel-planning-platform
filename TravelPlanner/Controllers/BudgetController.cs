@@ -4,99 +4,142 @@ using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers
 {
-    public class CreateTripRequest
+    public class SetBudgetLimitsRequest
     {
-        public int Participants { get; set; }
+        public string TripCode { get; set; } = string.Empty;
         public Dictionary<string, decimal> CategoryLimits { get; set; } = new();
     }
 
     public class AddExpenseRequest
     {
         public decimal Amount { get; set; }
-        public string Category { get; set; } = string.Empty;
-        public string ParticipantName { get; set; } = "Guest";
+        public string Category { get; set; }
+        public Guid ParticipantId { get; set; }
+        public string TripCode { get; set; }
     }
 
     [ApiController]
     [Route("api/[controller]")]
     public class BudgetController : ControllerBase
     {
-        private static Budget _budget = new();
-        private static int _participantCount = 1;
 
-        [HttpPost("create")]
-        public IActionResult CreateTrip([FromBody] CreateTripRequest request)
+        [HttpPost("limits")]
+        public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
         {
-            var budget = new Budget();
-            _participantCount = request.Participants > 0 ? request.Participants : 1;
+            var trip = TripService.FindTripByCode(request.TripCode);
+
+            if (trip == null)
+                return NotFound(new { error = "Trip not found" });
 
             foreach (var pair in request.CategoryLimits)
             {
                 if (Enum.TryParse<Category>(pair.Key, true, out var category))
                 {
-                    budget.CategoryLimits[category] = pair.Value;
+                    trip.Budget.CategoryLimits[category] = pair.Value;
                 }
             }
 
-            _budget = budget;
-            return Ok(new { message = "Trip created" });
+            return Ok(new { message = "Budget limits set" });
         }
 
         [HttpPost("expense")]
         public IActionResult AddExpense([FromBody] AddExpenseRequest request)
         {
-            if (_budget == null)
-                return BadRequest(new { error = "No trip created yet" });
-
             if (!Enum.TryParse<Category>(request.Category, true, out var category))
                 return BadRequest(new { error = "Invalid category" });
 
-            var participant = new Participant { Name = request.ParticipantName };
-            _budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
+            var trip = TripService.FindTripByCode(request.TripCode);
+
+            if (trip == null)
+                return BadRequest(new { error = "Trip not found" });
+
+            if (!trip.Participants.TryGetValue(request.ParticipantId, out var participant))
+                return BadRequest(new { error = "Participant not found" });
+
+            trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
             return Ok(new { message = "Expense added" });
         }
 
         [HttpGet("summary")]
-        public IActionResult GetSummary()
+        public IActionResult GetSummary(string tripCode)
         {
-            if (_budget == null)
-                return BadRequest(new { error = "No trip created yet" });
+            var trip = TripService.FindTripByCode(tripCode);
 
-            var results = BudgetService.CheckAllCategories(_budget);
-            var costPerPerson = BudgetService.GetCostPerPerson(_budget, _participantCount);
+            if (trip == null)
+                return NotFound(new { error = "Trip not found" });
+
+            var results = BudgetService.CheckAllCategories(trip.Budget);
+            var costPerPerson = BudgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
             return Ok(new { results, costPerPerson });
         }
 
-        [HttpGet("checkall")]
-        public IActionResult CheckAll()
+        [HttpGet("settlement")]
+        public IActionResult GetSettlement(string tripCode)
         {
-            var budget = new Budget
+            var trip = TripService.FindTripByCode(tripCode);
+
+            if (trip == null)
             {
-                CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } }
-            };
-            var dummyParticipant = new Participant { Name = "Tester" };
-            budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now, dummyParticipant));
+                return NotFound(new { error = "Trip not found"});
+            }
 
-            var results = BudgetService.CheckAllCategories(budget);
-            return Ok(results);
+            var balances = SettlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
+            var settlements = SettlementService.SimplifyDebts(balances);
+
+            var result = settlements.Select(s => new
+            {
+                from = GetParticipantName(trip, s.FromParticipantId),
+                to = GetParticipantName(trip, s.ToParticipantId),
+                amount = s.Amount
+            }).ToList();
+
+            return Ok(result);
         }
 
-        [HttpGet("create")]
-        public IActionResult Create()
+        private static string GetParticipantName(Trip trip, Guid participantId)
         {
-            return Ok("As tikrai gyvas");
+            if (trip.Participants.TryGetValue(participantId, out var participant))
+            {
+                return participant.Name;
+            }
+
+            return "Unknown participant";
         }
-
-        [HttpGet("export")]
-        public IActionResult ExportSummary()
+        [HttpGet("export/{tripId}")]
+        public IActionResult ExportSummary(Guid tripId)
         {
-            if (_budget == null)
-                return BadRequest(new { error = "No trip created yet" });
+            var trip = TripService.FindTripById(tripId);
+            if (trip is null || trip.Budget is null)
+            {
+                return NotFound(new { error = "Trip or budget not found" });
+            }
 
-            var summary = SummaryService.GenerateSummary(_budget, new List<PlannedVisit>(), _participantCount);
+            int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
+            var summary = SummaryService.GenerateSummary(trip.Budget, new List<PlannedVisit>(), participantCount);
             var pdfBytes = PdfExportService.ExportToPdf(summary);
 
-            return File(pdfBytes, "application/pdf", "trip-summary.pdf");
+            return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
         }
+        // [HttpGet("checkall")]
+        // public IActionResult CheckAll()
+        // {
+        //     var budget = new Budget
+        //     {
+        //         CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } },
+        //         NumberOfParticipants = 3
+        //     };
+        //     budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now));
+
+        //     var results = BudgetService.CheckAllCategories(budget);
+        //     return Ok(results);
+        // }
+
+        // [HttpGet("create")]
+        // public IActionResult Create()
+        // {
+        //     Console.WriteLine("Yay. Cia viskas veikia.");
+        //     return Ok("As tikrai gyvas");
+        // }
+
     }
 }
