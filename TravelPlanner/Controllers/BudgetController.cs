@@ -20,7 +20,7 @@ namespace TravelPlanner.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    public class BudgetApiController : ControllerBase
+    public class BudgetController : ControllerBase
     {
 
         [HttpPost("limits")]

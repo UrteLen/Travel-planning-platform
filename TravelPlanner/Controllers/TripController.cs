@@ -6,7 +6,7 @@ namespace TravelPlanner.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class TripApiController : ControllerBase
+    public class TripController : ControllerBase
     {
         public record CreateTripRequest(string Name, string Destination, DateTime StartDate, DateTime EndDate, string OrganizerName);
         public record JoinTripRequest(string InviteCode, string ParticipantName);
