@@ -88,12 +88,22 @@ namespace TravelPlanner.Controllers
 
             var result = settlements.Select(s => new
             {
-                from = trip.Participants[s.FromParticipantId].Name,
-                to = trip.Participants[s.ToParticipantId].Name,
+                from = GetParticipantName(trip, s.FromParticipantId),
+                to = GetParticipantName(trip, s.ToParticipantId),
                 amount = s.Amount
             }).ToList();
 
             return Ok(result);
+        }
+
+        private static string GetParticipantName(Trip trip, Guid participantId)
+        {
+            if (trip.Participants.TryGetValue(participantId, out var participant))
+            {
+                return participant.Name;
+            }
+
+            return "Unknown participant";
         }
 
         // [HttpGet("checkall")]
