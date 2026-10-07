@@ -54,9 +54,9 @@ namespace TravelPlanner.Service
             return budget.CategoryLimits.Values.Sum();
         }
 
-        public static decimal GetCostPerPerson(Budget budget) 
+        public static decimal GetCostPerPerson(Budget budget, int numberOfParticipants) 
         { 
-            return GetTotalActualSpend(budget).ToShare(budget.NumberOfParticipants);
+            return GetTotalActualSpend(budget).ToShare(numberOfParticipants);
         }
     }
 } 

@@ -5,6 +5,5 @@ namespace TravelPlanner.Models
     {
         public Dictionary<Category, decimal> CategoryLimits { get; set; } = new();
         public List<ExpenseEntry> Expenses { get; set; } = new();
-        public int NumberOfParticipants { get; set; }
     }
 }    

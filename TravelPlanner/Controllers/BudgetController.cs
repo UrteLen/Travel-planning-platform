@@ -4,10 +4,10 @@ using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers
 {
-    public class CreateTripRequest
+    public class SetBudgetLimitsRequest
     {
-        public int Participants { get; set; }
-        public Dictionary<string, decimal> CategoryLimits { get; set; }
+        public string TripCode { get; set; } = string.Empty;
+        public Dictionary<string, decimal> CategoryLimits { get; set; } = new();
     }
 
     public class AddExpenseRequest
@@ -20,33 +20,31 @@ namespace TravelPlanner.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    public class BudgetApiController : ControllerBase
+    public class BudgetController : ControllerBase
     {
-        private static Budget _budget;
 
-        [HttpPost("create")]
-        public IActionResult CreateTrip([FromBody] CreateTripRequest request)
+        [HttpPost("limits")]
+        public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
         {
-            var budget = new Budget { NumberOfParticipants = request.Participants };
+            var trip = TripService.FindTripByCode(request.TripCode);
+
+            if (trip == null)
+                return NotFound(new { error = "Trip not found" });
 
             foreach (var pair in request.CategoryLimits)
             {
                 if (Enum.TryParse<Category>(pair.Key, true, out var category))
                 {
-                    budget.CategoryLimits[category] = pair.Value;
+                    trip.Budget.CategoryLimits[category] = pair.Value;
                 }
             }
 
-            _budget = budget;
-            return Ok(new { message = "Trip created" });
+            return Ok(new { message = "Budget limits set" });
         }
 
         [HttpPost("expense")]
         public IActionResult AddExpense([FromBody] AddExpenseRequest request)
         {
-            if (_budget == null)
-                return BadRequest(new { error = "No trip created yet" });
-
             if (!Enum.TryParse<Category>(request.Category, true, out var category))
                 return BadRequest(new { error = "Invalid category" });
 
@@ -58,47 +56,54 @@ namespace TravelPlanner.Controllers
             if (!trip.Participants.TryGetValue(request.ParticipantId, out var participant))
                 return BadRequest(new { error = "Participant not found" });
 
-            _budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
+            trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
             return Ok(new { message = "Expense added" });
         }
 
         [HttpGet("summary")]
-        public IActionResult GetSummary()
+        public IActionResult GetSummary(string tripCode)
         {
-            if (_budget == null)
-                return BadRequest(new { error = "No trip created yet" });
+            var trip = TripService.FindTripByCode(tripCode);
 
-            var results = BudgetService.CheckAllCategories(_budget);
-            var costPerPerson = BudgetService.GetCostPerPerson(_budget);
+            if (trip == null)
+                return NotFound(new { error = "Trip not found" });
+
+            var results = BudgetService.CheckAllCategories(trip.Budget);
+            var costPerPerson = BudgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
             return Ok(new { results, costPerPerson });
         }
 
         [HttpGet("settlement")]
-        public IActionResult GetSettlement(string tripcode)
+        public IActionResult GetSettlement(string tripCode)
         {
-            if (_budget == null)
-            {
-                return NotFound("No trip created yet");
-            }
-
-            var trip = TripService.FindTripByCode(tripcode);
+            var trip = TripService.FindTripByCode(tripCode);
 
             if (trip == null)
             {
                 return NotFound(new { error = "Trip not found"});
             }
 
-            var balances = SettlementService.CalculateBalances(_budget, trip.Participants.Values);
+            var balances = SettlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
             var settlements = SettlementService.SimplifyDebts(balances);
 
             var result = settlements.Select(s => new
             {
-                from = trip.Participants[s.FromParticipantId].Name,
-                to = trip.Participants[s.ToParticipantId].Name,
+                from = GetParticipantName(trip, s.FromParticipantId),
+                to = GetParticipantName(trip, s.ToParticipantId),
                 amount = s.Amount
             }).ToList();
 
             return Ok(result);
+        }
+
+        private static string GetParticipantName(Trip trip, Guid participantId)
+        {
+            if (trip.Participants.TryGetValue(participantId, out var participant))
+            {
+                return participant.Name;
+            }
+
+            return "Unknown participant";
         }
 
         // [HttpGet("checkall")]
