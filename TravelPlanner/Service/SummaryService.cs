@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using TravelPlannerApp.Models;
+using TravelPlanner.Models;
 
-namespace TravelPlannerApp.Service
+namespace TravelPlanner.Service
 {
     public static class SummaryService
     {

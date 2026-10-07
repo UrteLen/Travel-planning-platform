@@ -3,9 +3,9 @@ using System.IO;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using TravelPlannerApp.Models;
+using TravelPlanner.Models;
 
-namespace TravelPlannerApp.Service
+namespace TravelPlanner.Service
 {
     public static class PdfExportService
     {
