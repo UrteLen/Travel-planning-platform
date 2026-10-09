@@ -15,7 +15,7 @@ namespace TravelPlanner.Service
 
             while (remainingPlaces.Count > 0)
             {
-                Place bestPlace = null;
+                Place? bestPlace = null;
                 double shortestDistance = double.MaxValue;
 
                 foreach (Place candidate in remainingPlaces)

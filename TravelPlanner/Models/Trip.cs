@@ -9,7 +9,7 @@ namespace TravelPlanner.Models
         public DateTime EndDate { get; set; } = DateTime.UtcNow;
         public Dictionary<Guid, Participant> Participants { get; set; } = new();
         public List<TripActivity> Activities { get; set; } = new();
-        public Budget? Budget { get; set; } = new();
+        public Budget Budget { get; set; } = new();
         public string InviteCode { get; init; } = string.Empty;
     }
 }
