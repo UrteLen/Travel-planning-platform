@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Models;
 using TravelPlanner.Service;
 using TravelPlanner.Requests;
+using TravelPlanner.Models.Trips;
+using TravelPlanner.Enums;
+using TravelPlanner.Models.Budgets;
+using TravelPlanner.Models.Planning;
 
 namespace TravelPlanner.Controllers
 {

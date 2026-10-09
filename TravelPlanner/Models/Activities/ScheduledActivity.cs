@@ -1,4 +1,4 @@
-namespace TravelPlanner.Models;
+namespace TravelPlanner.Models.Activities;
 
 public class ScheduledActivity
 {

@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Models;
 using TravelPlanner.Service;
 using TravelPlanner.Requests;
+using TravelPlanner.Enums;
+using TravelPlanner.Models.Geography;
 
 namespace TravelPlanner.Controllers
 {

@@ -1,4 +1,7 @@
-namespace TravelPlanner.Models
+using TravelPlanner.Models.Budgets;
+using TravelPlanner.Models.Activities;
+
+namespace TravelPlanner.Models.Trips
 {
     public class Trip
     {

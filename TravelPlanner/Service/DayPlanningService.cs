@@ -1,6 +1,7 @@
 using System.Collections.Generic;
-using TravelPlanner.Models;
 using TravelPlanner.Extensions;
+using TravelPlanner.Models.Planning;
+using TravelPlanner.Models.Geography;
 
 namespace TravelPlanner.Service
 {

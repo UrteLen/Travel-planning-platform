@@ -1,4 +1,6 @@
-namespace TravelPlanner.Models
+using TravelPlanner.Models.Geography;
+
+namespace TravelPlanner.Models.Planning
 {
     public class Place
     {

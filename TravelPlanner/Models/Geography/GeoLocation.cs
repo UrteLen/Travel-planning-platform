@@ -1,4 +1,4 @@
-namespace TravelPlanner.Models;
+namespace TravelPlanner.Models.Geography;
 
 public readonly struct GeoLocation
 {

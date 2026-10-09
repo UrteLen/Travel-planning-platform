@@ -1,4 +1,7 @@
-namespace TravelPlanner.Models;
+using TravelPlanner.Enums;
+using TravelPlanner.Models.Geography;
+
+namespace TravelPlanner.Models.Activities;
 
 public class TripActivity
 {

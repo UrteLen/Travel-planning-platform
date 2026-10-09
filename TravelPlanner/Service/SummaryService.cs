@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
-using TravelPlanner.Models;
+using TravelPlanner.Models.Budgets;
+using TravelPlanner.Responses;
+using TravelPlanner.Reports;
+using TravelPlanner.Models.Planning;
 
 namespace TravelPlanner.Service
 {

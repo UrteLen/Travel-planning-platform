@@ -1,5 +1,7 @@
 using System.Collections.Generic;
-namespace TravelPlanner.Models
+using TravelPlanner.Enums;
+
+namespace TravelPlanner.Models.Budgets
 {
     public class Budget
     {

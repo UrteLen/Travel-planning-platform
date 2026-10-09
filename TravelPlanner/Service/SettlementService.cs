@@ -1,6 +1,8 @@
-using TravelPlanner.Models;
 using TravelPlanner.Extensions;
 using System.Linq;
+using TravelPlanner.Models.Trips;
+using TravelPlanner.Models.Budgets;
+
 namespace TravelPlanner.Service
 {
     public class SettlementService
