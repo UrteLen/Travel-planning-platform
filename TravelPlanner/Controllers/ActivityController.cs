@@ -9,11 +9,18 @@ namespace TravelPlanner.Controllers
     [Route("api/[controller]")]
     public class ActivityController : ControllerBase
     {
+        private readonly TripService _tripService;
+        private readonly ActivityService _activityService;
+        public ActivityController(TripService tripService, ActivityService activityService)
+        {
+            this._tripService = tripService;
+            this._activityService = activityService;
+        }
 
         [HttpPost("{tripId}")]
         public IActionResult Add(Guid tripId, [FromBody] AddActivityRequest request)
         {
-            var trip = TripService.FindTripById(tripId);
+            var trip = _tripService.FindTripById(tripId);
 
             if (trip is null)
                 return NotFound("Trip not found.");
@@ -24,9 +31,7 @@ namespace TravelPlanner.Controllers
             var location = new GeoLocation(request.Latitude, request.Longitude);
             var duration = TimeSpan.FromHours(request.DurationHours);
 
-            var activityService = new ActivityService();
-
-            var activity = activityService.AddActivity(
+            var activity = _activityService.AddActivity(
                 trip,
                 request.Name,
                 category,

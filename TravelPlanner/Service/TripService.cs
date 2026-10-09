@@ -2,11 +2,11 @@ using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {
-    public static class TripService
+    public class TripService
     {
-        private static readonly List<Trip> _trips = new();
+        private readonly List<Trip> _trips = new();
 
-        public static Trip CreateTrip(string name, string destination, DateTime startDate, DateTime endDate, string organizerName)
+        public Trip CreateTrip(string name, string destination, DateTime startDate, DateTime endDate, string organizerName)
         {
             var organizer = new Participant
             {
@@ -28,7 +28,7 @@ namespace TravelPlanner.Service
             return trip;
         }
 
-        public static Trip? JoinTrip(string inviteCode, string participantName, UserRole role = UserRole.Participant)
+        public Trip? JoinTrip(string inviteCode, string participantName, UserRole role = UserRole.Participant)
         {
             var trip = FindTripByCode(inviteCode);
             if (trip is null)
@@ -46,17 +46,17 @@ namespace TravelPlanner.Service
             return trip;
         }
 
-        public static Trip? FindTripByCode(string inviteCode)
+        public Trip? FindTripByCode(string inviteCode)
         {
             return _trips.FirstOrDefault(t => t.InviteCode == inviteCode);
         }
 
-        public static Trip? FindTripById(Guid tripId)
+        public Trip? FindTripById(Guid tripId)
         {
             return _trips.FirstOrDefault(t => t.Id == tripId);
         }
 
-        public static string GenerateInviteCode()
+        public string GenerateInviteCode()
         {
             return Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
         }

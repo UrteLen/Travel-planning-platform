@@ -9,10 +9,16 @@ namespace TravelPlanner.Controllers
     [Route("api/[controller]")]
     public class TripController : ControllerBase
     {
+        private readonly TripService _tripService;
+        public TripController(TripService tripService)
+        {
+            this._tripService = tripService;
+        }
+
         [HttpPost("create")]
         public IActionResult Create(CreateTripRequest request)
         {
-            var trip = TripService.CreateTrip(
+            var trip = _tripService.CreateTrip(
                 request.Name,
                 request.Destination,
                 request.StartDate,
@@ -25,7 +31,7 @@ namespace TravelPlanner.Controllers
         [HttpPost("join")]
         public IActionResult Join(JoinTripRequest request)
         {
-            var trip = TripService.JoinTrip(request.InviteCode, request.ParticipantName);
+            var trip = _tripService.JoinTrip(request.InviteCode, request.ParticipantName);
 
             if (trip is null)
             {

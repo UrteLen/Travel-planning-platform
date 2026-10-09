@@ -5,17 +5,18 @@ using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {
-    public static class BudgetService
+    public class BudgetService
     {
-        public static decimal GetTotalSpent(Budget budget, Category category) 
-        { 
+
+        public decimal GetTotalSpent(Budget budget, Category category)
+        {
             return budget.Expenses
                 .Where(e => e.Category == category)
                 .Sum(e => e.Amount);
         }
 
-        public static CategoryBudgetResult CheckCategory(Budget budget, Category category) 
-        { 
+        public CategoryBudgetResult CheckCategory(Budget budget, Category category)
+        {
             decimal actual = GetTotalSpent(budget, category);
             decimal limit = budget.CategoryLimits.GetValueOrDefault(category, 0m);
 
@@ -28,7 +29,7 @@ namespace TravelPlanner.Service
                 {
                     status = BudgetStatus.Warning;
 
-                } else 
+                } else
                   {
                     status = BudgetStatus.Ok;
                   }
@@ -36,27 +37,27 @@ namespace TravelPlanner.Service
 
         }
 
-        public static List<CategoryBudgetResult> CheckAllCategories(Budget budget) 
-        { 
+        public List<CategoryBudgetResult> CheckAllCategories(Budget budget)
+        {
              return budget.CategoryLimits.Keys
                     .Select(category => CheckCategory(budget, category))
                     .ToList();
         }
 
-        public static decimal GetTotalActualSpend(Budget budget) 
-        { 
+        public decimal GetTotalActualSpend(Budget budget)
+        {
             return budget.Expenses
                 .Sum(e => e.Amount);
         }
 
-        public static decimal GetTotalPlannedBudget(Budget budget) 
-        { 
+        public decimal GetTotalPlannedBudget(Budget budget)
+        {
             return budget.CategoryLimits.Values.Sum();
         }
 
-        public static decimal GetCostPerPerson(Budget budget, int numberOfParticipants) 
-        { 
+        public decimal GetCostPerPerson(Budget budget, int numberOfParticipants)
+        {
             return GetTotalActualSpend(budget).ToShare(numberOfParticipants);
         }
     }
-} 
+}

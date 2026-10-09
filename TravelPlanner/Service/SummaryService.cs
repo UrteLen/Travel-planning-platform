@@ -4,14 +4,20 @@ using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {
-    public static class SummaryService
+    public class SummaryService
     {
-        public static TripSummary GenerateSummary(Budget budget, List<PlannedVisit> itinerary, int numberOfParticipants = 1)
+        private readonly BudgetService _budgetService;
+        public SummaryService(BudgetService budgetService)
         {
-            decimal totalPlanned = BudgetService.GetTotalPlannedBudget(budget);
-            decimal totalActual = BudgetService.GetTotalActualSpend(budget);
-            decimal costPerPerson = BudgetService.GetCostPerPerson(budget, numberOfParticipants);
-            List<CategoryBudgetResult> breakdown = BudgetService.CheckAllCategories(budget);
+            this._budgetService = budgetService;
+        }
+
+        public TripSummary GenerateSummary(Budget budget, List<PlannedVisit> itinerary, int numberOfParticipants = 1)
+        {
+            decimal totalPlanned = _budgetService.GetTotalPlannedBudget(budget);
+            decimal totalActual = _budgetService.GetTotalActualSpend(budget);
+            decimal costPerPerson = _budgetService.GetCostPerPerson(budget, numberOfParticipants);
+            List<CategoryBudgetResult> breakdown = _budgetService.CheckAllCategories(budget);
 
             return new TripSummary(totalPlanned, totalActual, costPerPerson, breakdown, itinerary, DateTime.Now);
         }

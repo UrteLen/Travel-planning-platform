@@ -9,11 +9,26 @@ namespace TravelPlanner.Controllers
     [Route("api/[controller]")]
     public class BudgetController : ControllerBase
     {
+        private readonly TripService _tripService;
+        private readonly BudgetService _budgetService;
+        private readonly SettlementService _settlementService;
+        private readonly SummaryService _summaryService;
+        private readonly PdfExportService _pdfExportService;
+        public BudgetController(TripService tripService, BudgetService budgetService,
+                                SettlementService settlementService, SummaryService summaryService,
+                                PdfExportService pdfExportService)
+        {
+            this._tripService = tripService;
+            this._budgetService = budgetService;
+            this._settlementService = settlementService;
+            this._summaryService = summaryService;
+            this._pdfExportService = pdfExportService;
+        }
 
         [HttpPost("limits")]
         public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
         {
-            var trip = TripService.FindTripByCode(request.TripCode);
+            var trip = _tripService.FindTripByCode(request.TripCode);
 
             if (trip == null)
                 return NotFound(new { error = "Trip not found" });
@@ -35,7 +50,7 @@ namespace TravelPlanner.Controllers
             if (!Enum.TryParse<Category>(request.Category, true, out var category))
                 return BadRequest(new { error = "Invalid category" });
 
-            var trip = TripService.FindTripByCode(request.TripCode);
+            var trip = _tripService.FindTripByCode(request.TripCode);
 
             if (trip == null)
                 return BadRequest(new { error = "Trip not found" });
@@ -50,28 +65,28 @@ namespace TravelPlanner.Controllers
         [HttpGet("summary")]
         public IActionResult GetSummary(string tripCode)
         {
-            var trip = TripService.FindTripByCode(tripCode);
+            var trip = _tripService.FindTripByCode(tripCode);
 
             if (trip == null)
                 return NotFound(new { error = "Trip not found" });
 
-            var results = BudgetService.CheckAllCategories(trip.Budget);
-            var costPerPerson = BudgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
+            var results = _budgetService.CheckAllCategories(trip.Budget);
+            var costPerPerson = _budgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
             return Ok(new { results, costPerPerson });
         }
 
         [HttpGet("settlement")]
         public IActionResult GetSettlement(string tripCode)
         {
-            var trip = TripService.FindTripByCode(tripCode);
+            var trip = _tripService.FindTripByCode(tripCode);
 
             if (trip == null)
             {
                 return NotFound(new { error = "Trip not found"});
             }
 
-            var balances = SettlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
-            var settlements = SettlementService.SimplifyDebts(balances);
+            var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
+            var settlements = _settlementService.SimplifyDebts(balances);
 
             var result = settlements.Select(s => new
             {
@@ -95,15 +110,15 @@ namespace TravelPlanner.Controllers
         [HttpGet("export/{tripId}")]
         public IActionResult ExportSummary(Guid tripId)
         {
-            var trip = TripService.FindTripById(tripId);
+            var trip = _tripService.FindTripById(tripId);
             if (trip is null || trip.Budget is null)
             {
                 return NotFound(new { error = "Trip or budget not found" });
             }
 
             int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
-            var summary = SummaryService.GenerateSummary(trip.Budget, new List<PlannedVisit>(), participantCount);
-            var pdfBytes = PdfExportService.ExportToPdf(summary);
+            var summary = _summaryService.GenerateSummary(trip.Budget, new List<PlannedVisit>(), participantCount);
+            var pdfBytes = _pdfExportService.ExportToPdf(summary);
 
             return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
         }
