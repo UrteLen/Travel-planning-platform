@@ -4,9 +4,9 @@ using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service
 {
-    public static class DayPlanningService
+    public class DayPlanningService
     {
-        public static List<PlannedVisit> DayPlan(List<Place> places, GeoLocation startLocation, DateTime startTime, double speedKmh)
+        public List<PlannedVisit> DayPlan(List<Place> places, GeoLocation startLocation, DateTime startTime, double speedKmh)
         {
             List<PlannedVisit> plan = new();
             List<Place> remainingPlaces = new(places);
