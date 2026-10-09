@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Models;
 using TravelPlanner.Service;
+using TravelPlanner.Requests;
 
 namespace TravelPlanner.Controllers
 {
@@ -8,9 +9,6 @@ namespace TravelPlanner.Controllers
     [Route("api/[controller]")]
     public class TripController : ControllerBase
     {
-        public record CreateTripRequest(string Name, string Destination, DateTime StartDate, DateTime EndDate, string OrganizerName);
-        public record JoinTripRequest(string InviteCode, string ParticipantName);
-
         [HttpPost("create")]
         public IActionResult Create(CreateTripRequest request)
         {

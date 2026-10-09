@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Models;
 using TravelPlanner.Service;
+using TravelPlanner.Requests;
 
 namespace TravelPlanner.Controllers
 {
@@ -8,14 +9,6 @@ namespace TravelPlanner.Controllers
     [Route("api/[controller]")]
     public class ActivityController : ControllerBase
     {
-        public record AddActivityRequest(
-            string Name,
-            string Category,
-            double Latitude,
-            double Longitude,
-            double DurationHours,
-            decimal EstimatedCost = 0m,
-            bool Optional = true);
 
         [HttpPost("{tripId}")]
         public IActionResult Add(Guid tripId, [FromBody] AddActivityRequest request)

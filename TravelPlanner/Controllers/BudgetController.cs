@@ -1,23 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Models;
 using TravelPlanner.Service;
+using TravelPlanner.Requests;
 
 namespace TravelPlanner.Controllers
 {
-    public class SetBudgetLimitsRequest
-    {
-        public string TripCode { get; set; } = string.Empty;
-        public Dictionary<string, decimal> CategoryLimits { get; set; } = new();
-    }
-
-    public class AddExpenseRequest
-    {
-        public decimal Amount { get; set; }
-        public string Category { get; set; }
-        public Guid ParticipantId { get; set; }
-        public string TripCode { get; set; }
-    }
-
     [ApiController]
     [Route("api/[controller]")]
     public class BudgetController : ControllerBase

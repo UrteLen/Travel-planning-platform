@@ -1,11 +1,12 @@
 using System.Text.Json;
 using TravelPlanner.Models;
+using TravelPlanner.Imports;
 
 namespace TravelPlanner.Service;
 
 public class ActivityImportService
 {
-    public List<ActivityImportDto> LoadFromJson(string filePath)
+    public List<ActivityImportData> LoadFromJson(string filePath)
     {
         using FileStream stream = File.OpenRead(filePath);
 
@@ -14,11 +15,11 @@ public class ActivityImportService
             PropertyNameCaseInsensitive = true
         };
 
-        var activities = JsonSerializer.Deserialize<List<ActivityImportDto>>(stream, options);
-        return activities ?? new List<ActivityImportDto>();
+        var activities = JsonSerializer.Deserialize<List<ActivityImportData>>(stream, options);
+        return activities ?? new List<ActivityImportData>();
     }
 
-    public List<TripActivity> ConvertToActivities(IEnumerable<ActivityImportDto> importedActivities)
+    public List<TripActivity> ConvertToActivities(IEnumerable<ActivityImportData> importedActivities)
     {
         var activities = new List<TripActivity>();
 
