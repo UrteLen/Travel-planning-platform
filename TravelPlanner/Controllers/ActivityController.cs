@@ -3,6 +3,7 @@ using TravelPlanner.Service;
 using TravelPlanner.Requests;
 using TravelPlanner.Enums;
 using TravelPlanner.Models.Geography;
+using TravelPlanner.Responses;
 
 namespace TravelPlanner.Controllers
 {
@@ -41,7 +42,19 @@ namespace TravelPlanner.Controllers
                 request.EstimatedCost,
                 request.Optional);
 
-            return Ok(activity);
+            var response = new ActivityResponse(
+                activity.Id,
+                activity.Name,
+                activity.Category,
+                new GeoLocationResponse(activity.Location.Latitude, activity.Location.Longitude),
+                activity.Duration,
+                activity.EstimatedCost,
+                activity.IsOptional,
+                activity.OpeningTime,
+                activity.ClosingTime
+            );
+
+            return Ok(response);
         }
     }
 }
