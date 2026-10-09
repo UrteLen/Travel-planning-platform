@@ -5,6 +5,7 @@ using TravelPlanner.Models.Trips;
 using TravelPlanner.Enums;
 using TravelPlanner.Models.Budgets;
 using TravelPlanner.Models.Planning;
+using TravelPlanner.Responses;
 
 namespace TravelPlanner.Controllers
 {
@@ -75,7 +76,7 @@ namespace TravelPlanner.Controllers
 
             var results = _budgetService.CheckAllCategories(trip.Budget);
             var costPerPerson = _budgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
-            return Ok(new { results, costPerPerson });
+            return Ok(new BudgetSummaryResponse(results, costPerPerson));
         }
 
         [HttpGet("settlement")]
@@ -91,12 +92,11 @@ namespace TravelPlanner.Controllers
             var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
             var settlements = _settlementService.SimplifyDebts(balances);
 
-            var result = settlements.Select(s => new
-            {
-                from = GetParticipantName(trip, s.FromParticipantId),
-                to = GetParticipantName(trip, s.ToParticipantId),
-                amount = s.Amount
-            }).ToList();
+            var result = settlements.Select(s => new SettlementResponse(
+                GetParticipantName(trip, s.FromParticipantId),
+                GetParticipantName(trip, s.ToParticipantId),
+                s.Amount
+            )).ToList();
 
             return Ok(result);
         }
