@@ -21,7 +21,9 @@ public class TripActivity
     GeoLocation location,
     TimeSpan duration,
     decimal estimatedCost = 0m,
-    bool optional = true)
+    bool optional = true,
+    TimeSpan? openingTime = null,
+    TimeSpan? closingTime = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -48,5 +50,7 @@ public class TripActivity
         Duration = duration;
         EstimatedCost = estimatedCost;
         IsOptional = optional;
+        OpeningTime = openingTime;
+        ClosingTime = closingTime;
     }
 }

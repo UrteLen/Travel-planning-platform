@@ -1,4 +1,6 @@
+using TravelPlanner.Extensions;
 using TravelPlanner.Models.Activities;
+using TravelPlanner.Models.Trips;
 
 namespace TravelPlanner.Service;
 
@@ -69,5 +71,64 @@ public class ActivitySchedulingService
                 activity.EndTime > dayStart)
             .OrderBy(activity => activity.StartTime)
             .ToList();
+    }
+
+    public ScheduledActivity ScheduleActivity(Trip trip, TripActivity activity,
+        DateTime startTime, double speedKmh)
+    {
+        var scheduledActivity = new ScheduledActivity(activity, startTime);
+        if (startTime.Date < trip.StartDate.Date)
+        {
+            throw new InvalidOperationException("Activity cannot be scheduled before the trip starts.");
+        }
+
+        if (scheduledActivity.EndTime > trip.EndDate.Date.AddDays(1))
+        {
+            throw new InvalidOperationException("Activity cannot be scheduled after the trip ends.");
+        }
+
+        if (HasOpeningHoursConflict(scheduledActivity))
+        {
+            throw new InvalidOperationException("Activity cannot be scheduled outside of its opening hours.");
+        }
+
+        foreach (ScheduledActivity existingActivity in trip.ScheduledActivities)
+        {
+            if (HasTimeConflict(scheduledActivity, existingActivity))
+            {
+                throw new InvalidOperationException("Activity cannot be scheduled due to a time conflict with another activity.");
+            }
+        }
+        
+        var previousActivity = trip.ScheduledActivities
+            .Where(x => x.StartTime < startTime)
+            .OrderByDescending(x => x.StartTime)
+            .FirstOrDefault();
+        var nextActivity = trip.ScheduledActivities
+            .Where(x => x.StartTime > startTime)
+            .OrderBy(x => x.StartTime)
+            .FirstOrDefault();
+
+        if (previousActivity != null)
+        {
+            double distance = scheduledActivity.Activity.Location.DistanceTo(previousActivity.Activity.Location);
+            TimeSpan travelTime = distance.TimeTo(speedKmh);
+            if (HasTravelTimeConflict(scheduledActivity, previousActivity, travelTime))
+            {
+                throw new InvalidOperationException("Activity cannot be scheduled due to a travel time conflict with another activity.");
+            }
+        }
+
+        if (nextActivity != null)
+        {
+            double distance = scheduledActivity.Activity.Location.DistanceTo(nextActivity.Activity.Location);
+            TimeSpan travelTime = distance.TimeTo(speedKmh);
+            if (HasTravelTimeConflict(scheduledActivity, nextActivity, travelTime))
+            {
+                throw new InvalidOperationException("Activity cannot be scheduled due to a travel time conflict with another activity.");
+            }
+        }
+        trip.ScheduledActivities.Add(scheduledActivity);
+        return scheduledActivity;
     }
 }

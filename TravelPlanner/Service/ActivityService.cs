@@ -14,7 +14,9 @@ public class ActivityService
     GeoLocation location,
     TimeSpan duration,
     decimal estimatedCost = 0m,
-    bool optional = true)
+    bool optional = true,
+    TimeSpan? openingTime = null,
+    TimeSpan? closingTime = null)
     {
         var activity = new TripActivity(
             name,
@@ -22,7 +24,9 @@ public class ActivityService
             location,
             duration,
             estimatedCost,
-            optional);
+            optional,
+            openingTime,
+            closingTime);
 
         trip.Activities.Add(activity);
 
