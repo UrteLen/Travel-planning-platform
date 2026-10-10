@@ -1,4 +1,6 @@
-namespace TravelPlanner.Models
+using TravelPlanner.Enums;
+
+namespace TravelPlanner.Models.Trips
 {
     public class Participant
     {

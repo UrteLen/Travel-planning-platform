@@ -3,13 +3,13 @@ using System.IO;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using TravelPlanner.Models;
+using TravelPlanner.Reports;
 
 namespace TravelPlanner.Service
 {
-    public static class PdfExportService
+    public class PdfExportService
     {
-        public static byte[] ExportToPdf(TripSummary summary)
+        public byte[] ExportToPdf(TripSummary summary)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using TravelPlanner.Responses;
+using TravelPlanner.Models.Planning;
 
-namespace TravelPlanner.Models
+namespace TravelPlanner.Reports
 {
     public record TripSummary(
         decimal TotalPlannedBudget,

@@ -1,11 +1,19 @@
-using TravelPlanner.Models;
 using TravelPlanner.Extensions;
 using System.Linq;
+using TravelPlanner.Models.Trips;
+using TravelPlanner.Models.Budgets;
+
 namespace TravelPlanner.Service
 {
-    public static class SettlementService
+    public class SettlementService
     {
-        public static Dictionary<Guid, decimal> CalculateBalances(Budget budget, IEnumerable<Participant> participants)
+        private readonly BudgetService _budgetService;
+        public SettlementService(BudgetService budgetService)
+        {
+            this._budgetService = budgetService;
+        }
+
+        public Dictionary<Guid, decimal> CalculateBalances(Budget budget, IEnumerable<Participant> participants)
         {
             var participantList = participants.ToList();
             var balances = new Dictionary<Guid, decimal>();
@@ -15,7 +23,7 @@ namespace TravelPlanner.Service
                 return balances;
             }
 
-            var totalSpendings = BudgetService.GetTotalActualSpend(budget);
+            var totalSpendings = _budgetService.GetTotalActualSpend(budget);
             decimal[] shares = totalSpendings.SplitEvenly(participantList.Count);
 
             for (int i = 0; i < participantList.Count; i++)
@@ -32,7 +40,7 @@ namespace TravelPlanner.Service
             return balances;
         }
 
-        public static List<Settlement> SimplifyDebts(Dictionary<Guid, decimal> balances)
+        public List<Settlement> SimplifyDebts(Dictionary<Guid, decimal> balances)
         {
             var settlements = new List<Settlement>();
 

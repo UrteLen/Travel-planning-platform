@@ -1,8 +1,10 @@
-namespace TravelPlanner.Models
+using TravelPlanner.Models.Geography;
+
+namespace TravelPlanner.Models.Planning
 {
     public class Place
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public GeoLocation Location { get; set; }
         public TimeSpan VisitDuration { get; set; }
         public TimeSpan OpeningTime { get; set; }

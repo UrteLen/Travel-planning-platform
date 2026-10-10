@@ -1,3 +1,5 @@
+using TravelPlanner.Service;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
@@ -12,6 +14,12 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddControllers();
+builder.Services.AddSingleton<TripService>();
+builder.Services.AddScoped<ActivityService>();
+builder.Services.AddScoped<BudgetService>();
+builder.Services.AddScoped<SettlementService>();
+builder.Services.AddScoped<SummaryService>();
+builder.Services.AddScoped<PdfExportService>();
 
 var app = builder.Build();
 

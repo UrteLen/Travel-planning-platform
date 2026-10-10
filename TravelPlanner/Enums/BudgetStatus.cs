@@ -1,4 +1,4 @@
-namespace TravelPlanner.Models
+namespace TravelPlanner.Enums
 {
     public enum BudgetStatus
     {
