@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Trip/create"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Empty Trip",
+      "destination": "Kaunas",
+      "startDate": "2026-10-20T00:00:00Z",
+      "endDate": "2026-10-21T00:00:00Z",
+      "organizerName": "Solo"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const t = pm.response.json();
+      pm.collectionVariables.set("tripBId", t.id);
+      pm.test("Second trip created", () => pm.expect(t.id).to.be.a("string"));
+    language: text/javascript
+order: 2000

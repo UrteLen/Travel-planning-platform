@@ -20,6 +20,9 @@ builder.Services.AddScoped<BudgetService>();
 builder.Services.AddScoped<SettlementService>();
 builder.Services.AddScoped<SummaryService>();
 builder.Services.AddScoped<PdfExportService>();
+builder.Services.AddSingleton<PlanVersionService>();
+builder.Services.AddSingleton<VisitScheduler>();
+builder.Services.AddScoped<DayPlanningService>();
 
 var app = builder.Build();
 

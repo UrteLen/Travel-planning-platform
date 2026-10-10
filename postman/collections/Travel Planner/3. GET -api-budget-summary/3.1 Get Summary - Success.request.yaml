@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/budget/summary?tripCode={{inviteCode}}"
+method: GET
+queryParams:
+  tripCode: "{{inviteCode}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('Returns results array and costPerPerson', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData).to.have.property('results');
+          pm.expect(jsonData).to.have.property('costPerPerson');
+      });
+    language: text/javascript
+order: 1000

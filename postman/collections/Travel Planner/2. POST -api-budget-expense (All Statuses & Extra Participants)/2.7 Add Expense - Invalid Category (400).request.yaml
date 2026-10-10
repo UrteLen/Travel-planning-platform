@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/budget/expense"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tripCode": "{{inviteCode}}",
+      "participantId": "{{organizerId}}",
+      "category": "NonExistentCategory",
+      "amount": 10.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 400 Bad Request', function () {
+          pm.response.to.have.status(400);
+      });
+      pm.test('Returns invalid category error', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.error).to.eql('Invalid category');
+      });
+    language: text/javascript
+order: 7000

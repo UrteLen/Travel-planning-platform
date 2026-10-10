@@ -1,0 +1,23 @@
+$kind: http-request
+name: 2.3 Add Expense (John) - Exceeded State (+€25 = €110 / €100 Food)
+url: "{{baseUrl}}/api/budget/expense"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tripCode": "{{inviteCode}}",
+      "participantId": "{{organizerId}}",
+      "category": "Food",
+      "amount": 25.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+    language: text/javascript
+order: 3000

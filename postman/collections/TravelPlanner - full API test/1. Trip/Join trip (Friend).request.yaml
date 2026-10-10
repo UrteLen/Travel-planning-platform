@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Trip/join"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "inviteCode": "{{tripCode}}",
+      "participantName": "Friend"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const t = pm.response.json();
+      const ids = Object.keys(t.participants);
+      pm.test("Trip now has 2 participants", () => pm.expect(ids).to.have.lengthOf(2));
+      const friend = ids.find(id => id !== pm.collectionVariables.get("organizerId"));
+      pm.test("Friend joined with the right name", () => pm.expect(t.participants[friend].name).to.eql("Friend"));
+      pm.collectionVariables.set("friendId", friend);
+    language: text/javascript
+order: 2000

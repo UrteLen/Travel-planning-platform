@@ -7,48 +7,64 @@ namespace TravelPlanner.Service
 {
     public class DayPlanningService
     {
+        private readonly VisitScheduler _scheduler;
+
+        public DayPlanningService(VisitScheduler scheduler)
+        {
+            _scheduler = scheduler;
+        }
+
         public List<PlannedVisit> DayPlan(List<Place> places, GeoLocation startLocation, DateTime startTime, double speedKmh)
         {
             List<PlannedVisit> plan = new();
-            List<Place> remainingPlaces = new(places);
+            List<Place> remaining = new(places);
             GeoLocation currentLocation = startLocation;
             DateTime currentTime = startTime;
 
-            while (remainingPlaces.Count > 0)
+            while (remaining.Count > 0)
             {
-                Place? bestPlace = null;
-                double shortestDistance = double.MaxValue;
+                Place? best = null;
+                DateTime bestStart = default;
+                DateTime bestEnd = default;
+                double shortest = double.MaxValue;
 
-                foreach (Place candidate in remainingPlaces)
+                foreach (Place candidate in remaining)
                 {
-                    double newDistance = currentLocation.DistanceTo(candidate.Location);
-                    TimeSpan newTime = newDistance.TimeTo(speedKmh);
-                    if (GeoLocationExtensions.CanVisit(currentTime, candidate, newTime))
-                    {
-                        if (newDistance < shortestDistance)
-                        {
-                            shortestDistance = newDistance;
-                            bestPlace = candidate;
-                        }
-                    }
+                    double distance = currentLocation.DistanceTo(candidate.Location);
+                    DateTime arrival = currentTime + TravelTime(distance, speedKmh);
 
+                    if (_scheduler.TrySchedule(arrival, candidate, out DateTime start, out DateTime end)
+                        && distance < shortest)
+                    {
+                        shortest = distance;
+                        best = candidate;
+                        bestStart = start;
+                        bestEnd = end;
+                    }
                 }
-                if (bestPlace == null)
+
+                if (best == null)
                 {
                     break;
-                } 
-                double bestDistance = currentLocation.DistanceTo(bestPlace.Location);
-                TimeSpan travelTime = bestDistance.TimeTo(speedKmh);
-                DateTime arrivalTime = currentTime + travelTime;
-                DateTime departureTime = arrivalTime + bestPlace.VisitDuration;
+                }
 
-                plan.Add(new PlannedVisit(bestPlace, arrivalTime, departureTime));
-                currentLocation = bestPlace.Location;
-                currentTime = departureTime;
-                remainingPlaces.Remove(bestPlace);
-
+                plan.Add(new PlannedVisit(best, bestStart, bestEnd));
+                currentLocation = best.Location;
+                currentTime = bestEnd;
+                remaining.Remove(best);
             }
+
             return plan;
+        }
+
+        private TimeSpan TravelTime(double distanceKm, double speedKmh)
+        {
+            if (speedKmh <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(speedKmh), "Speed must be positive.");
+            }
+
+            return TimeSpan.FromHours(distanceKm / speedKmh);
         }
     }
 }

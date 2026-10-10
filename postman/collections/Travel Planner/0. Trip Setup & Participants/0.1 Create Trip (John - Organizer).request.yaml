@@ -1,0 +1,34 @@
+$kind: http-request
+url: "{{baseUrl}}/api/trip/create"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "Full Controller Test Trip",
+      "destination": "Rome",
+      "startDate": "2026-06-01T10:00:00Z",
+      "endDate": "2026-06-10T18:00:00Z",
+      "organizerName": "John"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      var jsonData = pm.response.json();
+      pm.collectionVariables.set('createdTripId', jsonData.id);
+      pm.collectionVariables.set('inviteCode', jsonData.inviteCode);
+      if (Array.isArray(jsonData.participants)) {
+          var p = jsonData.participants.find(x => x.name === 'John' || x.participantName === 'John');
+          if (p) { pm.collectionVariables.set('organizerId', p.id || p.participantId); }
+          else if (jsonData.participants.length > 0) { pm.collectionVariables.set('organizerId', jsonData.participants[0].id || jsonData.participants[0].participantId); }
+      } else if (jsonData.participants && typeof jsonData.participants === 'object') {
+          var keys = Object.keys(jsonData.participants);
+          if (keys.length > 0) { pm.collectionVariables.set('organizerId', keys[0]); }
+      }
+    language: text/javascript
+order: 1000

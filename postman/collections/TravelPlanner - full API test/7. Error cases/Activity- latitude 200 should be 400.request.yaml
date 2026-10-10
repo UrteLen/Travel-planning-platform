@@ -1,0 +1,21 @@
+$kind: http-request
+name: "Activity: latitude 200 should be 400"
+url: "{{baseUrl}}/api/Activity/{{tripId}}"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "X",
+      "category": "Food",
+      "latitude": 200,
+      "longitude": 25.3,
+      "durationHours": 1
+    }
+scripts:
+  - type: afterResponse
+    code: 'pm.test("Status is 400 (KNOWN BUG: controller does not catch it, returns 500)", () => pm.response.to.have.status(400));'
+    language: text/javascript
+order: 11000

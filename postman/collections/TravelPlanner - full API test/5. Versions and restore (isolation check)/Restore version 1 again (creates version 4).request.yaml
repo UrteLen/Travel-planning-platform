@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Plan/{{tripId}}/restore/1?changedBy=Organizer"
+method: POST
+queryParams:
+  changedBy: Organizer
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const v = pm.response.json();
+      pm.test("New version number is 4", () => pm.expect(v.versionNumber).to.eql(4));
+      pm.test("Restored from version 1", () => pm.expect(v.restoredFromVersion).to.eql(1));
+    language: text/javascript
+order: 8000

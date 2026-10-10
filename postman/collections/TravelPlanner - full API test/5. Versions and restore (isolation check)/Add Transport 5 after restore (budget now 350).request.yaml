@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Budget/expense"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "tripCode": "{{tripCode}}",
+      "participantId": "{{friendId}}",
+      "amount": 5,
+      "category": "Transport"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      pm.test("Message says expense added", () => pm.expect(pm.response.json().message).to.eql("Expense added"));
+    language: text/javascript
+order: 6000

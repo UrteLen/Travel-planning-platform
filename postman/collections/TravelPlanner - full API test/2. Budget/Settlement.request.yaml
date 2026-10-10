@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Budget/settlement?tripCode={{tripCode}}"
+method: GET
+queryParams:
+  tripCode: "{{tripCode}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const r = pm.response.json();
+      pm.test("Exactly one settlement", () => pm.expect(r).to.have.lengthOf(1));
+      pm.test("Organizer pays Friend 22.5", () => {
+        pm.expect(r[0].from).to.eql("Organizer");
+        pm.expect(r[0].to).to.eql("Friend");
+        pm.expect(r[0].amount).to.eql(22.5);
+      });
+    language: text/javascript
+order: 6000

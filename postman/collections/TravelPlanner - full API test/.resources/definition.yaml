@@ -1,0 +1,12 @@
+$kind: collection
+description: Run the whole collection in order with the Collection Runner. Variables are filled automatically.
+variables:
+  baseUrl: https://localhost:7157
+  tripId: ""
+  tripCode: ""
+  organizerId: ""
+  friendId: ""
+  act1: ""
+  act2: ""
+  act3: ""
+  tripBId: ""

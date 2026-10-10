@@ -1,0 +1,3 @@
+$kind: collection
+name: 5. GET /api/budget/export/{tripId}
+order: 6000

@@ -1,0 +1,31 @@
+$kind: http-request
+name: "Add activity: TV Tower"
+url: "{{baseUrl}}/api/Activity/{{tripId}}"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "TV Tower",
+      "category": "Activities",
+      "latitude": 54.6867,
+      "longitude": 25.2152,
+      "durationHours": 2,
+      "estimatedCost": 15,
+      "optional": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const a = pm.response.json();
+      pm.test("Activity name is TV Tower", () => pm.expect(a.name).to.eql("TV Tower"));
+      pm.test("No opening hours (API cannot set them yet)", () => {
+        pm.expect(a.openingTime).to.eql(null);
+        pm.expect(a.closingTime).to.eql(null);
+      });
+      pm.collectionVariables.set("act3", a.id);
+    language: text/javascript
+order: 3000

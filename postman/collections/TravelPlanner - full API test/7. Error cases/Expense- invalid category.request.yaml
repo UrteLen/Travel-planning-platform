@@ -1,0 +1,20 @@
+$kind: http-request
+name: "Expense: invalid category"
+url: "{{baseUrl}}/api/Budget/expense"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "tripCode": "{{tripCode}}",
+      "participantId": "{{organizerId}}",
+      "amount": 5,
+      "category": "Banana"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 400", () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 2000

@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{baseUrl}}/api/trip/join"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "inviteCode": "{{inviteCode}}",
+      "participantName": "Marijus"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+
+      var jsonData = pm.response.json();
+
+      if (jsonData.participants) {
+          for (var key in jsonData.participants) {
+              var participant = jsonData.participants[key];
+              if (participant.name === "Marijus") {
+                  pm.collectionVariables.set("participantMarijusId", participant.id || key);
+                  console.log("Marijaus ID išsaugotas: " + (participant.id || key));
+              }
+          }
+      }
+    language: text/javascript
+order: 2000
