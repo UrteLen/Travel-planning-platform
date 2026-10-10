@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/budget/settlement?tripCode=INVALID_CODE"
+method: GET
+queryParams:
+  tripCode: INVALID_CODE
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 404 Not Found', function () {
+          pm.response.to.have.status(404);
+      });
+    language: text/javascript
+order: 2000

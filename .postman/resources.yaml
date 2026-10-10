@@ -1,0 +1,16 @@
+# Use this workspace to collaborate
+workspace:
+  id: 93aa35c0-c106-46dd-8be6-96c45d22cfb0
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/Travel Planner: 92229c0f-2bb3-44e1-b30d-57511ea521dd
+    ../postman/collections/TravelPlanner - full API test: 2e0ea03e-f783-48e4-a4a5-56cea05e0c10
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

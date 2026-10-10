@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Budget/summary?tripCode={{tripCode}}"
+method: GET
+queryParams:
+  tripCode: "{{tripCode}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const s = pm.response.json();
+      pm.test("Cost per person is 172.5", () => pm.expect(s.costPerPerson).to.eql(172.5));
+
+      const find = (name, num) => s.results.find(r => r.category === name || r.category === num);
+      const food = find("Food", 2);
+      const transport = find("Transport", 0);
+      pm.test("Two categories returned", () => pm.expect(s.results).to.have.lengthOf(2));
+      pm.test("Food: 250 spent of 200 limit", () => {
+        pm.expect(food.actualSpent).to.eql(250);
+        pm.expect(food.limit).to.eql(200);
+      });
+      pm.test("Food status is Exceeded", () => pm.expect(["Exceeded", 2]).to.include(food.status));
+      pm.test("Transport: 95 spent of 100 limit", () => {
+        pm.expect(transport.actualSpent).to.eql(95);
+        pm.expect(transport.limit).to.eql(100);
+      });
+      pm.test("Transport status is Warning (95% of limit)", () => pm.expect(["Warning", 1]).to.include(transport.status));
+      pm.test("Enums come back as strings (needs JsonStringEnumConverter in Program.cs)", () => {
+        pm.expect(food.category).to.be.a("string");
+        pm.expect(food.status).to.be.a("string");
+      });
+    language: text/javascript
+order: 5000

@@ -1,0 +1,21 @@
+$kind: http-request
+name: "Plan generate: speed 0"
+url: "{{baseUrl}}/api/Plan/{{tripId}}/generate"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "startLatitude": 54.6872,
+      "startLongitude": 25.2797,
+      "startTime": "2026-10-11T09:00:00",
+      "speedKmh": 0,
+      "changedBy": "Organizer"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status is 400", () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 13000

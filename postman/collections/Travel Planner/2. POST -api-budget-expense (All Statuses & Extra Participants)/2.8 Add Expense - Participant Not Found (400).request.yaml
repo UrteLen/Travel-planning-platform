@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/budget/expense"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tripCode": "{{inviteCode}}",
+      "participantId": "00000000-0000-0000-0000-000000000000",
+      "category": "Food",
+      "amount": 10.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 400 Bad Request', function () {
+          pm.response.to.have.status(400);
+      });
+      pm.test('Returns participant not found error', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.error).to.eql('Participant not found');
+      });
+    language: text/javascript
+order: 8000

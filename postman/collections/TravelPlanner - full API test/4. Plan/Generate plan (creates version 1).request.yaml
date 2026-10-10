@@ -1,0 +1,36 @@
+$kind: http-request
+url: "{{baseUrl}}/api/Plan/{{tripId}}/generate"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "startLatitude": 54.6872,
+      "startLongitude": 25.2797,
+      "startTime": "2026-10-11T09:00:00",
+      "speedKmh": 30,
+      "changedBy": "Organizer"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const ms = s => Date.parse(s.replace(/(\.\d{3})\d+/, "$1"));
+      const plan = pm.response.json();
+      const base = ms("2026-10-11T09:00:00");
+      pm.test("All 3 activities are planned", () => {
+        pm.expect(plan).to.have.lengthOf(3);
+        pm.expect(plan.map(v => v.name)).to.have.members(["Gediminas Tower", "Uzupis", "TV Tower"]);
+      });
+      pm.test("Nothing starts before 09:00", () => plan.forEach(v => pm.expect(ms(v.arrivalTime)).to.be.at.least(base)));
+      pm.test("Visit lengths match the activity durations", () => plan.forEach(v =>
+        pm.expect([3600000, 5400000, 7200000]).to.include(ms(v.departureTime) - ms(v.arrivalTime))));
+      pm.test("Visits do not overlap", () => {
+        for (let i = 1; i < plan.length; i++) {
+          pm.expect(ms(plan[i].arrivalTime)).to.be.at.least(ms(plan[i - 1].departureTime));
+        }
+      });
+    language: text/javascript
+order: 1000

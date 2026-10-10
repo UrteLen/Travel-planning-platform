@@ -1,0 +1,31 @@
+$kind: http-request
+name: "Add activity: Uzupis"
+url: "{{baseUrl}}/api/Activity/{{tripId}}"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Uzupis",
+      "category": "Activities",
+      "latitude": 54.6806,
+      "longitude": 25.297,
+      "durationHours": 1.5,
+      "estimatedCost": 0,
+      "optional": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const a = pm.response.json();
+      pm.test("Activity name is Uzupis", () => pm.expect(a.name).to.eql("Uzupis"));
+      pm.test("No opening hours (API cannot set them yet)", () => {
+        pm.expect(a.openingTime).to.eql(null);
+        pm.expect(a.closingTime).to.eql(null);
+      });
+      pm.collectionVariables.set("act2", a.id);
+    language: text/javascript
+order: 2000

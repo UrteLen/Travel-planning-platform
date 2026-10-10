@@ -1,0 +1,14 @@
+$kind: http-request
+name: "Summary: v1 snapshot was untouched, 172.5 again"
+url: "{{baseUrl}}/api/Budget/summary?tripCode={{tripCode}}"
+method: GET
+queryParams:
+  tripCode: "{{tripCode}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200", () => pm.response.to.have.status(200));
+      const s = pm.response.json();
+      pm.test("Cost per person is 172.5", () => pm.expect(s.costPerPerson).to.eql(172.5));
+    language: text/javascript
+order: 9000

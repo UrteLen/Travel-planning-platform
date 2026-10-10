@@ -1,0 +1,10 @@
+$kind: collection
+description: Full integration suite covering all controllers, all status states (OK, Warning, Exceeded), error handling, and 4 active participants with multi-person expenses.
+variables:
+  baseUrl: https://localhost:7157
+  createdTripId: ""
+  inviteCode: ""
+  organizerId: ""
+  participantMarijusId: ""
+  participantGabrieleId: ""
+  participantTomasId: ""

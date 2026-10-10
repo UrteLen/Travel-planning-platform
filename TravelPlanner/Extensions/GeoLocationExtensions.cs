@@ -24,15 +24,5 @@ namespace TravelPlanner.Extensions
 
             return earthRadiusKm * c;
         }
-        public static TimeSpan TimeTo(this double distanceKm, double speedKmh)
-        {
-            return TimeSpan.FromHours(distanceKm / speedKmh);
-        }
-        public static bool CanVisit (DateTime currentTime, Place place, TimeSpan travelTime)
-        {
-            DateTime arrivalTime = currentTime + travelTime;
-            DateTime finishTime = arrivalTime + place.VisitDuration;
-            return arrivalTime.TimeOfDay >= place.OpeningTime && finishTime.TimeOfDay <= place.ClosingTime;
-        }
     }
 }

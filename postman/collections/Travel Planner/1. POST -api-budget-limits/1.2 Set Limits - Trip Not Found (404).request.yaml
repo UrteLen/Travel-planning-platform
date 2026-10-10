@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/budget/limits"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tripCode": "INVALID_CODE",
+      "categoryLimits": {
+        "Food": 100.00
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 404 Not Found', function () {
+          pm.response.to.have.status(404);
+      });
+      pm.test('Returns trip not found error', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.error).to.eql('Trip not found');
+      });
+    language: text/javascript
+order: 2000

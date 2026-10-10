@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/api/budget/limits"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tripCode": "{{inviteCode}}",
+      "categoryLimits": {
+        "Food": 100.00,
+        "Transport": 150.00,
+        "Accommodation": 500.00
+      }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('Returns limits set message', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.message).to.eql('Budget limits set');
+      });
+    language: text/javascript
+order: 1000

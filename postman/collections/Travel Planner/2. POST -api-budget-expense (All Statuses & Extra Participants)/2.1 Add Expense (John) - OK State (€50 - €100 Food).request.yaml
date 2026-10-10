@@ -1,0 +1,27 @@
+$kind: http-request
+name: 2.1 Add Expense (John) - OK State (€50 / €100 Food)
+url: "{{baseUrl}}/api/budget/expense"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "tripCode": "{{inviteCode}}",
+      "participantId": "{{organizerId}}",
+      "category": "Food",
+      "amount": 50.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('Expense added message received', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.message).to.eql('Expense added');
+      });
+    language: text/javascript
+order: 1000
