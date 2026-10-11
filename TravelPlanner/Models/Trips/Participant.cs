@@ -18,5 +18,13 @@ namespace TravelPlanner.Models.Trips
         {
             return Role == UserRole.Organizer;
         }
+
+        public Participant Clone() => new()
+        {
+            Id = Id,
+            Name = Name,
+            Email = Email,
+            Role = Role
+        };
     }
 }

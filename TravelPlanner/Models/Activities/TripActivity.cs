@@ -55,4 +55,13 @@ public class TripActivity
         OpeningTime = openingTime;
         ClosingTime = closingTime;
     }
+     public TripActivity Clone()
+    {
+        return new TripActivity(Name, Category, Location, Duration, EstimatedCost, IsOptional)
+        {
+            Id = Id,
+            OpeningTime = OpeningTime,
+            ClosingTime = ClosingTime
+        };
+    }
 }

@@ -1,5 +1,6 @@
 using TravelPlanner.Models.Budgets;
 using TravelPlanner.Models.Activities;
+using TravelPlanner.Models.Planning;
 
 namespace TravelPlanner.Models.Trips
 {
@@ -15,5 +16,6 @@ namespace TravelPlanner.Models.Trips
         public List<ScheduledActivity> ScheduledActivities { get; set; } = new();
         public Budget Budget { get; set; } = new();
         public string InviteCode { get; init; } = string.Empty;
+        public List<PlannedVisit> Plan { get; set; } = new();
     }
 }

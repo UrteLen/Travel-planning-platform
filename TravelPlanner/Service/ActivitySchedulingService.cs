@@ -76,6 +76,13 @@ public class ActivitySchedulingService
     public ScheduledActivity ScheduleActivity(Trip trip, TripActivity activity,
         DateTime startTime, double speedKmh)
     {
+        if (speedKmh <= 0 || !double.IsFinite(speedKmh))
+        {
+            throw new ArgumentException(
+                "Speed must be a positive, finite number.",
+                nameof(speedKmh));
+        }
+        
         var scheduledActivity = new ScheduledActivity(activity, startTime);
         if (startTime.Date < trip.StartDate.Date)
         {
@@ -112,7 +119,7 @@ public class ActivitySchedulingService
         if (previousActivity != null)
         {
             double distance = scheduledActivity.Activity.Location.DistanceTo(previousActivity.Activity.Location);
-            TimeSpan travelTime = distance.TimeTo(speedKmh);
+            TimeSpan travelTime = TimeSpan.FromHours(distance / speedKmh);
             if (HasTravelTimeConflict(scheduledActivity, previousActivity, travelTime))
             {
                 throw new InvalidOperationException("Activity cannot be scheduled due to a travel time conflict with another activity.");
@@ -122,7 +129,7 @@ public class ActivitySchedulingService
         if (nextActivity != null)
         {
             double distance = scheduledActivity.Activity.Location.DistanceTo(nextActivity.Activity.Location);
-            TimeSpan travelTime = distance.TimeTo(speedKmh);
+            TimeSpan travelTime = TimeSpan.FromHours(distance / speedKmh);
             if (HasTravelTimeConflict(scheduledActivity, nextActivity, travelTime))
             {
                 throw new InvalidOperationException("Activity cannot be scheduled due to a travel time conflict with another activity.");
