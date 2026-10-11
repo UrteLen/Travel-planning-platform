@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TravelPlanner.Models.Budgets;
 using TravelPlanner.Models.Planning;
+using TravelPlanner.Models.Activities;
 
 namespace TravelPlanner.Models.History
 {
@@ -11,6 +12,7 @@ namespace TravelPlanner.Models.History
         string ChangedBy,
         Budget BudgetSnapshot,
         List<PlannedVisit> PlanSnapshot,
+        List<TripActivity> ActivitiesSnapshot,
         int? RestoredFromVersion
     );
 }

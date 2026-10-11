@@ -7,4 +7,6 @@ public record AddActivityRequest(
     double Longitude,
     double DurationHours,
     decimal EstimatedCost = 0m,
-    bool Optional = true);
+    bool Optional = true,
+    TimeSpan? OpeningTime = null,
+    TimeSpan? ClosingTime = null);

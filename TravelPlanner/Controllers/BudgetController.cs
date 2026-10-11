@@ -18,15 +18,17 @@ namespace TravelPlanner.Controllers
         private readonly SettlementService _settlementService;
         private readonly SummaryService _summaryService;
         private readonly PdfExportService _pdfExportService;
+        private readonly TripVersionService _versions;
         public BudgetController(TripService tripService, BudgetService budgetService,
                                 SettlementService settlementService, SummaryService summaryService,
-                                PdfExportService pdfExportService)
+                                PdfExportService pdfExportService, TripVersionService versions)
         {
             this._tripService = tripService;
             this._budgetService = budgetService;
             this._settlementService = settlementService;
             this._summaryService = summaryService;
             this._pdfExportService = pdfExportService;
+            this._versions = versions;
         }
 
         [HttpPost("limits")]
@@ -44,6 +46,7 @@ namespace TravelPlanner.Controllers
                     trip.Budget.CategoryLimits[category] = pair.Value;
                 }
             }
+            _versions.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
 
             return Ok(new { message = "Budget limits set" });
         }
@@ -63,6 +66,7 @@ namespace TravelPlanner.Controllers
                 return BadRequest(new { error = "Participant not found" });
 
             trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
+            _versions.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
             return Ok(new { message = "Expense added" });
         }
 
@@ -120,31 +124,11 @@ namespace TravelPlanner.Controllers
             }
 
             int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
-            var summary = _summaryService.GenerateSummary(trip.Budget, new List<PlannedVisit>(), participantCount);
+            var summary = _summaryService.GenerateSummary(trip.Budget, trip.Plan, participantCount);
             var pdfBytes = _pdfExportService.ExportToPdf(summary);
 
             return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
         }
-        // [HttpGet("checkall")]
-        // public IActionResult CheckAll()
-        // {
-        //     var budget = new Budget
-        //     {
-        //         CategoryLimits = new() { { Category.Food, 200m }, { Category.Transport, 100m } },
-        //         NumberOfParticipants = 3
-        //     };
-        //     budget.Expenses.Add(new ExpenseEntry(190m, Category.Food, DateTime.Now));
-
-        //     var results = BudgetService.CheckAllCategories(budget);
-        //     return Ok(results);
-        // }
-
-        // [HttpGet("create")]
-        // public IActionResult Create()
-        // {
-        //     Console.WriteLine("Yay. Cia viskas veikia.");
-        //     return Ok("As tikrai gyvas");
-        // }
 
     }
 }
