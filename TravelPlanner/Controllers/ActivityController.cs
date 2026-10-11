@@ -40,7 +40,9 @@ namespace TravelPlanner.Controllers
                 location,
                 duration,
                 request.EstimatedCost,
-                request.Optional);
+                request.Optional,
+                request.OpeningTime,
+                request.ClosingTime);
 
             var response = new ActivityResponse(
                 activity.Id,
