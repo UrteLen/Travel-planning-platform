@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Models.Activities;
 using TravelPlanner.Models.Geography;
-using TravelPlanner.Models.Planning;
 using TravelPlanner.Requests;
 using TravelPlanner.Service;
 
@@ -12,13 +10,13 @@ namespace TravelPlanner.Controllers
     public class PlanController : ControllerBase
     {
         private readonly TripService _tripService;
-        private readonly DayPlanningService _dayPlanning;
-        private readonly PlanVersionService _versions;
+        private readonly PlanService _planService;
+        private readonly TripVersionService _versions;
 
-        public PlanController(TripService tripService, DayPlanningService dayPlanning, PlanVersionService versions)
+        public PlanController(TripService tripService, PlanService planService, TripVersionService versions)
         {
             _tripService = tripService;
-            _dayPlanning = dayPlanning;
+            _planService = planService;
             _versions = versions;
         }
 
@@ -42,12 +40,9 @@ namespace TravelPlanner.Controllers
                 return BadRequest(new { error = "Invalid start coordinates" });
             }
 
-            var places = trip.Activities.Select(ToPlace).ToList();
+            var plan = _planService.GeneratePlan(trip, start, request.StartTime, request.SpeedKmh, request.ChangedBy);
 
-            trip.Plan = _dayPlanning.DayPlan(places, start, request.StartTime, request.SpeedKmh);
-            _versions.SaveVersion(trip.Id, trip.Budget, trip.Plan, request.ChangedBy);
-
-            return Ok(trip.Plan.Select(ToResponse).ToList());
+            return Ok(PlanService.ToResponseList(plan));
         }
 
         [HttpGet("{tripId}")]
@@ -57,7 +52,7 @@ namespace TravelPlanner.Controllers
             if (trip is null)
                 return NotFound(new { error = "Trip not found" });
 
-            return Ok(trip.Plan.Select(ToResponse).ToList());
+            return Ok(PlanService.ToResponseList(trip.Plan));
         }
 
         [HttpGet("{tripId}/history")]
@@ -86,11 +81,7 @@ namespace TravelPlanner.Controllers
 
             try
             {
-                var version = _versions.Restore(trip.Id, versionNumber, changedBy);
-
-                // the trip gets its own copies, so editing it never changes the history
-                trip.Plan = _versions.CopyPlan(version.PlanSnapshot);
-                trip.Budget = version.BudgetSnapshot.Clone();
+                var version = _planService.RestoreVersion(trip, versionNumber, changedBy);
 
                 return Ok(new
                 {
@@ -104,23 +95,6 @@ namespace TravelPlanner.Controllers
             {
                 return NotFound(new { error = "Version not found" });
             }
-        }
-
-        private static Place ToPlace(TripActivity activity)
-        {
-            return new Place
-            {
-                Name = activity.Name,
-                Location = activity.Location,
-                VisitDuration = activity.Duration,
-                OpeningTime = activity.OpeningTime ?? TimeSpan.Zero,
-                ClosingTime = activity.ClosingTime ?? TimeSpan.Zero   // both zero = open all day
-            };
-        }
-
-        private static object ToResponse(PlannedVisit visit)
-        {
-            return new { name = visit.Place.Name, arrivalTime = visit.ArrivalTime, departureTime = visit.DepartureTime };
         }
     }
 }

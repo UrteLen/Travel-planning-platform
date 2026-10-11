@@ -6,37 +6,36 @@ namespace TravelPlanner.Service
     {
         public bool TrySchedule(DateTime arrival, Place place, out DateTime start, out DateTime end)
         {
-            start = arrival;
-            end = arrival + place.VisitDuration;
+            bool isOpen24_7 = place.OpeningTime == TimeSpan.Zero && place.ClosingTime == TimeSpan.Zero;
 
-            return IsWithinOpeningHours(start, end, place.OpeningTime, place.ClosingTime);
-        }
-
-        private bool IsWithinOpeningHours(DateTime start, DateTime end, TimeSpan opening, TimeSpan closing)
-        {
-            DateTime openingDateTime;
-            DateTime closingDateTime;
-
-            if (closing > opening)
+            if (isOpen24_7)
             {
-                openingDateTime = start.Date + opening;
-                closingDateTime = start.Date + closing;
+                start = arrival;
+                end = start + place.VisitDuration;
+                return true;
             }
-            else
-            {
-                if (start.TimeOfDay >= opening)
-                {
-                    openingDateTime = start.Date + opening;
-                    closingDateTime = start.Date.AddDays(1) + closing;
-                }
-                else
-                {
-                    openingDateTime = start.Date.AddDays(-1) + opening;
-                    closingDateTime = start.Date + closing;
-                }
-            }
+
+            var (openingDateTime, closingDateTime) = GetOpeningWindow(arrival, place.OpeningTime, place.ClosingTime);
+
+            start = arrival < openingDateTime ? openingDateTime : arrival;
+            end = start + place.VisitDuration;
 
             return start >= openingDateTime && end <= closingDateTime;
+        }
+
+        private (DateTime Opening, DateTime Closing) GetOpeningWindow(DateTime reference, TimeSpan opening, TimeSpan closing)
+        {
+            if (closing > opening)
+            {
+                return (reference.Date + opening, reference.Date + closing);
+            }
+
+            if (reference.TimeOfDay >= opening)
+            {
+                return (reference.Date + opening, reference.Date.AddDays(1) + closing);
+            }
+
+            return (reference.Date.AddDays(-1) + opening, reference.Date + closing);
         }
     }
 }
