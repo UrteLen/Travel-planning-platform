@@ -17,6 +17,7 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<TripService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<ActivitySchedulingService>();
+builder.Services.AddScoped<ActivityVotingService>();
 builder.Services.AddScoped<BudgetService>();
 builder.Services.AddScoped<SettlementService>();
 builder.Services.AddScoped<SummaryService>();

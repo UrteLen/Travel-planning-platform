@@ -1,41 +1,64 @@
 using TravelPlanner.Models.Activities;
+using TravelPlanner.Models.Trips;
+using TravelPlanner.Enums;
 
 namespace TravelPlanner.Service;
 
 public class ActivityVotingService
 {
-    private readonly Dictionary<Guid, HashSet<Guid>> _votes = new();
-    public bool AddVote(Guid activityId, Guid participantId)
+    public void Vote(
+        Trip trip,
+        Guid participantId,
+        Guid activityId,
+        VoteType voteType)
     {
-        if (!_votes.ContainsKey(activityId))
+        if (!trip.Participants.ContainsKey(participantId))
         {
-            _votes[activityId] = new HashSet<Guid>();
+            throw new KeyNotFoundException("Participant not found in this trip.");
         }
 
-        return _votes[activityId].Add(participantId);
-    }
-    public bool RemoveVote(Guid activityId, Guid participantId)
-    {
-        if (!_votes.ContainsKey(activityId))
+        var activity = trip.Activities
+            .FirstOrDefault(x => x.Id == activityId);
+        if (activity == null)
         {
-            return false;
+            throw new KeyNotFoundException("Activity not found in the trip.");
         }
 
-        return _votes[activityId].Remove(participantId);
+        activity.Votes[participantId] = voteType;
     }
-    public int GetVoteCount(Guid activityId)
+
+    public int GetUpvoteCount(TripActivity activity)
     {
-        if (!_votes.ContainsKey(activityId))
+        return activity.Votes.Values.Count(vote => vote == VoteType.Upvote);
+    }
+    
+    public int GetDownvoteCount(TripActivity activity)
+    {
+        return activity.Votes.Values.Count(vote => vote == VoteType.Downvote);
+    }
+
+    public bool RemoveVote(Trip trip, Guid participantId, Guid activityId)
+    {
+        if (!trip.Participants.ContainsKey(participantId))
         {
-            return 0;
+            throw new KeyNotFoundException("Participant not found in this trip.");
         }
 
-        return _votes[activityId].Count;
+        var activity = trip.Activities
+            .FirstOrDefault(x => x.Id == activityId);
+        if (activity == null)
+        {
+            throw new KeyNotFoundException("Activity not found in the trip.");
+        }
+
+        return activity.Votes.Remove(participantId);
     }
+
     public List<TripActivity> PrioritizeByVotes(IEnumerable<TripActivity> activities)
     {
         return activities
-            .OrderByDescending(activity => GetVoteCount(activity.Id))
+            .OrderByDescending(activity => GetUpvoteCount(activity) - GetDownvoteCount(activity))
+            .ThenByDescending(activity => GetUpvoteCount(activity))
             .ToList();
     }
     public List<TripActivity> SelectActivitiesForPlan(IEnumerable<TripActivity> activities, decimal availableBudget, TimeSpan availableTime)

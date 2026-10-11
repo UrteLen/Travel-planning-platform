@@ -14,6 +14,7 @@ public class TripActivity
     public bool IsOptional { get; set; }
     public TimeSpan? OpeningTime { get; set; }
     public TimeSpan? ClosingTime { get; set; }
+    public Dictionary<Guid, VoteType> Votes { get; set; } = new();
 
     public TripActivity(
     string name,
@@ -23,7 +24,8 @@ public class TripActivity
     decimal estimatedCost = 0m,
     bool optional = true,
     TimeSpan? openingTime = null,
-    TimeSpan? closingTime = null)
+    TimeSpan? closingTime = null
+    )
     {
         if (string.IsNullOrWhiteSpace(name))
         {
