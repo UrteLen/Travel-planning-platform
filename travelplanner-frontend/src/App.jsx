@@ -16,9 +16,9 @@ export default function App() {
   const [joinForm, setJoinForm] = useState({ inviteCode: '', participantName: '' });
   
   const [summary, setSummary] = useState(null);
-  const [settlements, setSettlements] = useState([]);
   const [expenseForm, setExpenseForm] = useState({ amount: '', category: 'Food', participantId: '' });
-  const [categoryLimits, setCategoryLimits] = useState({ Food: 100, Transport: 100, Activities: 100 });
+  
+  const [categoryLimits, setCategoryLimits] = useState({ Food: 100, Transport: 100, Activities: 100, Accommodation: 100 });
   const [newParticipantName, setNewParticipantName] = useState('');
   
   const [planForm, setPlanForm] = useState({ startLat: 54.6872, startLon: 25.2797, startTime: new Date().toISOString().slice(0, 16), speedKmh: 50, changedBy: 'Organizer' });
@@ -48,6 +48,7 @@ export default function App() {
       const text = await res.text();
       if (text) msg = text;
     } catch {
+      // ignore
     }
     throw new Error(msg);
   }
@@ -136,10 +137,6 @@ export default function App() {
           if (!res.ok) await handleApiError(res);
           return res.json();
         }),
-        fetch(`${API_BASE}/budget/settlement?tripCode=${tripCode}`).then(async res => {
-          if (!res.ok) await handleApiError(res);
-          return res.json();
-        }),
         fetch(`${API_BASE}/plan/${tripId}`).then(async res => {
           if (!res.ok) await handleApiError(res);
           return res.json();
@@ -149,8 +146,7 @@ export default function App() {
       if (currentRequestId !== requestIdRef.current) return;
 
       if (results[0].status === 'fulfilled') setSummary(results[0].value);
-      if (results[1].status === 'fulfilled') setSettlements(results[1].value);
-      if (results[2].status === 'fulfilled') setPlanResult(results[2].value);
+      if (results[1].status === 'fulfilled') setPlanResult(results[1].value);
 
       const failedCount = results.filter(r => r.status === 'rejected').length;
       if (failedCount > 0) {
@@ -195,6 +191,21 @@ export default function App() {
         })
       });
       if (!res.ok) await handleApiError(res);
+
+      const newExpense = {
+        amount: amountNum,
+        category: expenseForm.category,
+        date: new Date().toISOString(),
+        participant: currentTrip.participants[expenseForm.participantId] || { name: 'Unknown' }
+      };
+
+      setCurrentTrip(prev => ({
+        ...prev,
+        budget: {
+          ...prev.budget,
+          expenses: [...(prev.budget?.expenses || []), newExpense]
+        }
+      }));
 
       setExpenseForm(prev => ({ ...prev, amount: '' }));
       await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
@@ -493,6 +504,7 @@ export default function App() {
                 <option value="Food">Food</option>
                 <option value="Transport">Transport</option>
                 <option value="Activities">Activities</option>
+                <option value="Accommodation">Accommodation</option>
               </select>
               <select value={expenseForm.participantId} onChange={e => setExpenseForm({...expenseForm, participantId: e.target.value})} required>
                 <option value="">Select Who Paid</option>
@@ -599,18 +611,10 @@ export default function App() {
         {activeTab === 'settlements' && (
           <div>
             <h2>Balances & Settlements</h2>
-            
-            <h3>Suggested Debt Settlements</h3>
-            {settlements.length > 0 ? (
-              <ul className="list">
-                {settlements.map((s, idx) => (
-                  <li key={idx} className="list-item settlement-item">
-                    <span><strong>{s.from}</strong> pays <strong>{s.to}</strong></span>
-                    <span className="settlement-amount">€{s.amount.toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="text-muted">All debts are settled or no expenses logged yet!</p>}
+            <div className="card" style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', textAlign: 'center', padding: '40px 20px' }}>
+              <h3>Settlements Feature Coming Soon</h3>
+              <p className="text-muted">Debt calculation and settlement engine is currently being integrated by your team.</p>
+            </div>
           </div>
         )}
       </div>
