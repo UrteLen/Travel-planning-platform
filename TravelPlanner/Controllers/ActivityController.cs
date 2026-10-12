@@ -8,18 +8,22 @@ using TravelPlanner.Responses;
 namespace TravelPlanner.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/trips/{tripId}/activities")]
     public class ActivityController : ControllerBase
     {
         private readonly TripService _tripService;
         private readonly ActivityService _activityService;
-        public ActivityController(TripService tripService, ActivityService activityService)
+        private readonly ActivityVotingService _activityVotingService;
+
+        public ActivityController(TripService tripService, ActivityService activityService,
+            ActivityVotingService activityVotingService)
         {
             this._tripService = tripService;
             this._activityService = activityService;
+            this._activityVotingService = activityVotingService;
         }
 
-        [HttpPost("{tripId}")]
+        [HttpPost]
         public IActionResult Add(Guid tripId, [FromBody] AddActivityRequest request)
         {
             var trip = _tripService.FindTripById(tripId);
@@ -57,6 +61,36 @@ namespace TravelPlanner.Controllers
             );
 
             return Ok(response);
+        }
+
+        [HttpGet("prioritized")]
+        public IActionResult GetPrioritizedActivities(Guid tripId)
+        {
+            var trip = _tripService.FindTripById(tripId);
+            if (trip == null)
+            {
+                return NotFound("Trip not found.");
+            }
+
+            var activities = _activityVotingService.PrioritizeByVotes(trip.Activities);
+            var responses = new List<ActivityResponse>();
+            
+            foreach (var activity in activities)
+            {
+                responses.Add(new ActivityResponse(
+                    activity.Id,
+                    activity.Name,
+                    activity.Category,
+                    new GeoLocationResponse(activity.Location.Latitude, activity.Location.Longitude),
+                    activity.Duration,
+                    activity.EstimatedCost,
+                    activity.IsOptional,
+                    activity.OpeningTime,
+                    activity.ClosingTime
+                ));
+            }
+
+            return Ok(responses);
         }
     }
 }
