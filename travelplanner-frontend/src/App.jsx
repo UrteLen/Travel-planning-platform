@@ -1,16 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import './App.css';
 
-const API_BASE = 'http://localhost:5154/api';
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : 'http://localhost:5154/api';
 
 export default function App() {
   const [currentTrip, setCurrentTrip] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
 
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const [createForm, setCreateForm] = useState({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
   const [joinForm, setJoinForm] = useState({ inviteCode: '', participantName: '' });
   
-  const [balances, setBalances] = useState({});
+  const [summary, setSummary] = useState(null);
   const [settlements, setSettlements] = useState([]);
   const [expenseForm, setExpenseForm] = useState({ amount: '', category: 'Food', participantId: '' });
   const [categoryLimits, setCategoryLimits] = useState({ Food: 100, Transport: 100, Activities: 100 });
@@ -19,176 +24,309 @@ export default function App() {
   const [planForm, setPlanForm] = useState({ startLat: 54.6872, startLon: 25.2797, startTime: new Date().toISOString().slice(0, 16), speedKmh: 50, changedBy: 'Organizer' });
   const [planResult, setPlanResult] = useState([]);
 
-  function handleCreateTrip(e) {
-    e.preventDefault();
-    fetch(`${API_BASE}/trip/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(createForm)
-    })
-      .then(res => res.json())
-      .then(data => {
-        setCurrentTrip(data);
-        fetchTripDetails(data.id);
-      })
-      .catch(err => alert('Failed to create trip: ' + err.message));
+  const requestIdRef = useRef(0);
+
+  function handleTripLoaded(tripData) {
+    setCurrentTrip(tripData);
+    setErrorMessage('');
+    
+    if (tripData?.budget?.categoryLimits) {
+      setCategoryLimits(prev => ({
+        ...prev,
+        ...tripData.budget.categoryLimits
+      }));
+    }
+
+    if (tripData?.id && tripData?.inviteCode) {
+      fetchTripDetails(tripData.id, tripData.inviteCode);
+    }
   }
 
-  function handleJoinTrip(e) {
-    e.preventDefault();
-    fetch(`${API_BASE}/trip/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(joinForm)
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Trip not found or invalid code');
-        return res.json();
-      })
-      .then(data => {
-        setCurrentTrip(data);
-        fetchTripDetails(data.id);
-      })
-      .catch(err => alert(err.message));
+  async function handleApiError(res) {
+    let msg = 'Request failed';
+    try {
+      const text = await res.text();
+      if (text) msg = text;
+    } catch {
+    }
+    throw new Error(msg);
   }
 
-  function fetchTripDetails(tripId) {
-    fetch(`${API_BASE}/budget/${tripId}/balances`)
-      .then(res => res.json())
-      .then(data => setBalances(data))
-      .catch(err => console.error('Error fetching balances:', err));
-
-    fetch(`${API_BASE}/budget/${tripId}/settlements`)
-      .then(res => res.json())
-      .then(data => setSettlements(data))
-      .catch(err => console.error('Error fetching settlements:', err));
-      
-    fetch(`${API_BASE}/plan/${tripId}`)
-      .then(res => res.json())
-      .then(data => setPlanResult(data))
-      .catch(err => console.error('Error fetching plan:', err));
-  }
-
-  function handleAddExpense(e) {
+  async function handleCreateTrip(e) {
     e.preventDefault();
-    if (!expenseForm.participantId) {
-      alert('Please select a participant who paid.');
+    const name = createForm.name.trim();
+    const destination = createForm.destination.trim();
+    const organizerName = createForm.organizerName.trim();
+
+    if (!name || !destination || !organizerName || !createForm.startDate || !createForm.endDate) {
+      setErrorMessage('Please fill out all required trip fields.');
       return;
     }
 
-    fetch(`${API_BASE}/budget/expense`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tripCode: currentTrip.inviteCode,
-        amount: parseFloat(expenseForm.amount),
-        category: expenseForm.category,
-        participantId: expenseForm.participantId
-      })
-    })
-      .then(async res => {
-        if (!res.ok) throw new Error('Failed to add expense');
-        
-        const newExpense = {
-          amount: parseFloat(expenseForm.amount),
-          category: expenseForm.category,
-          date: new Date().toISOString(),
-          participant: currentTrip.participants[expenseForm.participantId] || { name: 'Unknown' }
-        };
-        
-        setCurrentTrip(prev => ({
-          ...prev,
-          budget: {
-            ...prev.budget,
-            expenses: [...(prev.budget?.expenses || []), newExpense]
-          }
-        }));
-
-        setExpenseForm(prev => ({ ...prev, amount: '' }));
-        fetchTripDetails(currentTrip.id);
-      })
-      .catch(err => alert(err.message));
-  }
-
-  function handleSetLimits(e) {
-    e.preventDefault();
-    fetch(`${API_BASE}/budget/limits`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tripCode: currentTrip.inviteCode,
-        categoryLimits
-      })
-    })
-      .then(() => {
-        fetchTripDetails(currentTrip.id);
-        alert('Category limits updated!');
-      })
-      .catch(err => alert('Failed to update limits: ' + err.message));
-  }
-
-  function handleAddParticipant(e) {
-    e.preventDefault();
-    fetch(`${API_BASE}/trip/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        inviteCode: currentTrip.inviteCode,
-        participantName: newParticipantName
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setCurrentTrip(data);
-        setNewParticipantName('');
-        fetchTripDetails(data.id);
-      })
-      .catch(err => alert('Failed to add participant: ' + err.message));
-  }
-
-  function handleGeneratePlan(e) {
-    e.preventDefault();
-    fetch(`${API_BASE}/plan/${currentTrip.id}/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        startLatitude: parseFloat(planForm.startLat),
-        startLongitude: parseFloat(planForm.startLon),
-        startTime: planForm.startTime,
-        speedKmh: parseFloat(planForm.speedKmh),
-        changedBy: planForm.changedBy
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setPlanResult(data);
-        fetchTripDetails(currentTrip.id);
-      })
-      .catch(err => alert('Failed to generate plan: ' + err.message));
-  }
-
-  // Calculate category spending locally to ensure instant rendering without API blocking
-  const expenses = currentTrip?.budget?.expenses || [];
-  const categoryResults = Object.keys(categoryLimits).map(cat => {
-    const actualSpent = expenses
-      .filter(exp => exp.category.toLowerCase() === cat.toLowerCase())
-      .reduce((sum, exp) => sum + Number(exp.amount), 0);
-    const limit = categoryLimits[cat] || 0;
-    
-    let status = 'Ok';
-    if (actualSpent > limit) {
-      status = 'Exceeded';
-    } else if (actualSpent >= limit * 0.9 && limit > 0) {
-      status = 'Warning';
+    const startUtc = new Date(`${createForm.startDate}T00:00:00Z`).getTime();
+    const endUtc = new Date(`${createForm.endDate}T00:00:00Z`).getTime();
+    if (isNaN(startUtc) || isNaN(endUtc) || endUtc < startUtc) {
+      setErrorMessage('End date cannot be earlier than start date.');
+      return;
     }
 
-    return { category: cat, limit, actualSpent, status };
-  });
+    setLoading(true);
+    setErrorMessage('');
 
-  const totalSpent = categoryResults.reduce((acc, r) => acc + r.actualSpent, 0);
-  const totalPlanned = categoryResults.reduce((acc, r) => acc + r.limit, 0);
-  const participantCount = Object.keys(currentTrip?.participants || {}).length;
-  const costPerPerson = participantCount > 0 ? totalSpent / participantCount : 0;
+    try {
+      const res = await fetch(`${API_BASE}/trip/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...createForm, name, destination, organizerName })
+      });
+      if (!res.ok) await handleApiError(res);
+      const data = await res.json();
+      handleTripLoaded(data);
+      setCreateForm({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleJoinTrip(e) {
+    e.preventDefault();
+    const inviteCode = joinForm.inviteCode.trim();
+    const participantName = joinForm.participantName.trim();
+
+    if (!inviteCode || inviteCode.length < 3) {
+      setErrorMessage('Please provide a valid invite code.');
+      return;
+    }
+    if (!participantName) {
+      setErrorMessage('Please enter your participant name.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/trip/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode, participantName })
+      });
+      if (!res.ok) await handleApiError(res);
+      const data = await res.json();
+      handleTripLoaded(data);
+      setJoinForm({ inviteCode: '', participantName: '' });
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchTripDetails(tripId, tripCode) {
+    if (!tripId || !tripCode) return;
+
+    const currentRequestId = ++requestIdRef.current;
+    setErrorMessage('');
+
+    try {
+      const results = await Promise.allSettled([
+        fetch(`${API_BASE}/budget/summary?tripCode=${tripCode}`).then(async res => {
+          if (!res.ok) await handleApiError(res);
+          return res.json();
+        }),
+        fetch(`${API_BASE}/budget/settlement?tripCode=${tripCode}`).then(async res => {
+          if (!res.ok) await handleApiError(res);
+          return res.json();
+        }),
+        fetch(`${API_BASE}/plan/${tripId}`).then(async res => {
+          if (!res.ok) await handleApiError(res);
+          return res.json();
+        })
+      ]);
+
+      if (currentRequestId !== requestIdRef.current) return;
+
+      if (results[0].status === 'fulfilled') setSummary(results[0].value);
+      if (results[1].status === 'fulfilled') setSettlements(results[1].value);
+      if (results[2].status === 'fulfilled') setPlanResult(results[2].value);
+
+      const failedCount = results.filter(r => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        setErrorMessage('Warning: Some trip details failed to synchronize from the server.');
+      }
+    } catch (err) {
+      if (currentRequestId === requestIdRef.current) {
+        setErrorMessage('Failed to load trip details: ' + err.message);
+      }
+    }
+  }
+
+  async function handleAddExpense(e) {
+    e.preventDefault();
+    if (!currentTrip?.inviteCode || !currentTrip?.id) {
+      setErrorMessage('No active trip selected.');
+      return;
+    }
+
+    const amountNum = parseFloat(expenseForm.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setErrorMessage('Please enter a valid expense amount greater than 0.');
+      return;
+    }
+    if (!expenseForm.participantId) {
+      setErrorMessage('Please select who paid for the expense.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/budget/expense`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tripCode: currentTrip.inviteCode,
+          amount: amountNum,
+          category: expenseForm.category,
+          participantId: expenseForm.participantId
+        })
+      });
+      if (!res.ok) await handleApiError(res);
+
+      setExpenseForm(prev => ({ ...prev, amount: '' }));
+      await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSetLimits(e) {
+    e.preventDefault();
+    if (!currentTrip?.inviteCode || !currentTrip?.id) return;
+
+    const sanitizedLimits = {};
+    for (const [cat, val] of Object.entries(categoryLimits)) {
+      if (val === '' || val === null || isNaN(val) || Number(val) < 0) {
+        setErrorMessage(`Invalid limit for category ${cat}. Limits must be numeric and non-negative.`);
+        return;
+      }
+      sanitizedLimits[cat] = Number(val);
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/budget/limits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tripCode: currentTrip.inviteCode,
+          categoryLimits: sanitizedLimits
+        })
+      });
+      if (!res.ok) await handleApiError(res);
+
+      await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddParticipant(e) {
+    e.preventDefault();
+    if (!currentTrip?.inviteCode) return;
+    const participantName = newParticipantName.trim();
+    if (!participantName) {
+      setErrorMessage('Please provide a valid participant name.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/trip/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteCode: currentTrip.inviteCode,
+          participantName
+        })
+      });
+      if (!res.ok) await handleApiError(res);
+      const data = await res.json();
+      handleTripLoaded(data);
+      setNewParticipantName('');
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGeneratePlan(e) {
+    e.preventDefault();
+    if (!currentTrip?.id || !currentTrip?.inviteCode) return;
+
+    const lat = parseFloat(planForm.startLat);
+    const lon = parseFloat(planForm.startLon);
+    const speed = parseFloat(planForm.speedKmh);
+
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      setErrorMessage('Latitude must be between -90 and 90.');
+      return;
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      setErrorMessage('Longitude must be between -180 and 180.');
+      return;
+    }
+    if (isNaN(speed) || speed <= 0) {
+      setErrorMessage('Speed must be greater than 0 km/h.');
+      return;
+    }
+    if (!planForm.startTime) {
+      setErrorMessage('Start time is required.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/plan/${currentTrip.id}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startLatitude: lat,
+          startLongitude: lon,
+          startTime: planForm.startTime,
+          speedKmh: speed,
+          changedBy: planForm.changedBy
+        })
+      });
+      if (!res.ok) await handleApiError(res);
+      const data = await res.json();
+      setPlanResult(data);
+      await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const categoryResults = summary?.results || null;
+  const totalSpent = summary?.results ? summary.results.reduce((acc, r) => acc + r.actualSpent, 0) : 0;
+  const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
+  const costPerPerson = summary?.costPerPerson ?? 0;
 
   if (!currentTrip) {
     return (
@@ -196,6 +334,8 @@ export default function App() {
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
         
+        {errorMessage && <div className="error-banner">{errorMessage}</div>}
+
         <div className="card">
           <h2>Create New Trip</h2>
           <form onSubmit={handleCreateTrip} className="form-grid">
@@ -204,7 +344,7 @@ export default function App() {
             <input type="date" value={createForm.startDate} onChange={e => setCreateForm({...createForm, startDate: e.target.value})} required />
             <input type="date" value={createForm.endDate} onChange={e => setCreateForm({...createForm, endDate: e.target.value})} required />
             <input placeholder="Your Name (Organizer)" value={createForm.organizerName} onChange={e => setCreateForm({...createForm, organizerName: e.target.value})} required />
-            <button type="submit" className="btn-primary">Create Trip</button>
+            <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Trip'}</button>
           </form>
         </div>
 
@@ -213,7 +353,7 @@ export default function App() {
           <form onSubmit={handleJoinTrip} className="form-grid">
             <input placeholder="6-Digit Invite Code" value={joinForm.inviteCode} onChange={e => setJoinForm({...joinForm, inviteCode: e.target.value})} required />
             <input placeholder="Your Name" value={joinForm.participantName} onChange={e => setJoinForm({...joinForm, participantName: e.target.value})} required />
-            <button type="submit" className="btn-secondary">Join Trip</button>
+            <button type="submit" className="btn-secondary" disabled={loading}>{loading ? 'Joining...' : 'Join Trip'}</button>
           </form>
         </div>
       </div>
@@ -221,6 +361,7 @@ export default function App() {
   }
 
   const participantsList = Object.values(currentTrip.participants || {});
+  const expensesList = currentTrip?.budget?.expenses || [];
 
   return (
     <div className="container">
@@ -231,6 +372,8 @@ export default function App() {
         </div>
         <button onClick={() => setCurrentTrip(null)} className="btn-secondary">Switch Trip</button>
       </div>
+
+      {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
       <div className="tabs">
         {['overview', 'participants', 'categories', 'expenses', 'itinerary', 'calendar', 'settlements'].map(tab => (
@@ -248,20 +391,22 @@ export default function App() {
         {activeTab === 'overview' && (
           <div>
             <h2>Trip Overview</h2>
-            <div className="stats-grid">
-              <div className="stat-box">
-                <h3>Total Planned Budget</h3>
-                <p className="stat-value">€{totalPlanned.toFixed(2)}</p>
+            {summary ? (
+              <div className="stats-grid">
+                <div className="stat-box">
+                  <h3>Total Planned Budget</h3>
+                  <p className="stat-value">€{totalPlanned.toFixed(2)}</p>
+                </div>
+                <div className="stat-box">
+                  <h3>Total Actual Spend</h3>
+                  <p className="stat-value">€{totalSpent.toFixed(2)}</p>
+                </div>
+                <div className="stat-box">
+                  <h3>Cost Per Person</h3>
+                  <p className="stat-value">€{costPerPerson.toFixed(2)}</p>
+                </div>
               </div>
-              <div className="stat-box">
-                <h3>Total Actual Spend</h3>
-                <p className="stat-value">€{totalSpent.toFixed(2)}</p>
-              </div>
-              <div className="stat-box">
-                <h3>Cost Per Person</h3>
-                <p className="stat-value">€{costPerPerson.toFixed(2)}</p>
-              </div>
-            </div>
+            ) : <p className="text-muted">Loading authoritative budget summary from server...</p>}
           </div>
         )}
 
@@ -278,7 +423,7 @@ export default function App() {
             </ul>
             <form onSubmit={handleAddParticipant} className="inline-form" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
               <input placeholder="New Participant Name" value={newParticipantName} onChange={e => setNewParticipantName(e.target.value)} required />
-              <button type="submit" className="btn-primary">Add Participant</button>
+              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Adding...' : 'Add Participant'}</button>
             </form>
           </div>
         )}
@@ -293,39 +438,41 @@ export default function App() {
                   <input 
                     type="number" 
                     value={categoryLimits[cat]} 
-                    onChange={e => setCategoryLimits({...categoryLimits, [cat]: parseFloat(e.target.value) || 0})} 
+                    onChange={e => setCategoryLimits({...categoryLimits, [cat]: e.target.value})} 
                   />
                 </div>
               ))}
-              <button type="submit" className="btn-primary">Save Limits</button>
+              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Saving...' : 'Save Limits'}</button>
             </form>
 
             <div>
               <h3>Spent vs Limit & Status</h3>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Limit</th>
-                    <th>Spent</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categoryResults.map(r => (
-                    <tr key={r.category}>
-                      <td><strong>{r.category}</strong></td>
-                      <td>€{r.limit.toFixed(2)}</td>
-                      <td>€{r.actualSpent.toFixed(2)}</td>
-                      <td>
-                        <span className={`badge ${r.status.toLowerCase()}`}>
-                          {r.status}
-                        </span>
-                      </td>
+              {categoryResults ? (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Limit</th>
+                      <th>Spent</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {categoryResults.map(r => (
+                      <tr key={r.category}>
+                        <td><strong>{r.category}</strong></td>
+                        <td>€{r.limit.toFixed(2)}</td>
+                        <td>€{r.actualSpent.toFixed(2)}</td>
+                        <td>
+                          <span className={`badge ${r.status.toLowerCase()}`}>
+                            {r.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : <p className="text-muted">Loading authoritative category status...</p>}
             </div>
           </div>
         )}
@@ -353,41 +500,43 @@ export default function App() {
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-              <button type="submit" className="btn-primary">Add Expense</button>
+              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Adding...' : 'Add Expense'}</button>
             </form>
 
             <div style={{ marginBottom: '30px' }}>
               <h3>Category Spending Summary</h3>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Limit</th>
-                    <th>Total Spent</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categoryResults.map(r => (
-                    <tr key={r.category}>
-                      <td><strong>{r.category}</strong></td>
-                      <td>€{r.limit.toFixed(2)}</td>
-                      <td>€{r.actualSpent.toFixed(2)}</td>
-                      <td>
-                        <span className={`badge ${r.status.toLowerCase()}`}>
-                          {r.status}
-                        </span>
-                      </td>
+              {categoryResults ? (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Limit</th>
+                      <th>Total Spent</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {categoryResults.map(r => (
+                      <tr key={r.category}>
+                        <td><strong>{r.category}</strong></td>
+                        <td>€{r.limit.toFixed(2)}</td>
+                        <td>€{r.actualSpent.toFixed(2)}</td>
+                        <td>
+                          <span className={`badge ${r.status.toLowerCase()}`}>
+                            {r.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : <p className="text-muted">Loading authoritative category summary...</p>}
             </div>
 
             <h3>Expense History</h3>
-            {expenses.length > 0 ? (
+            {expensesList.length > 0 ? (
               <ul className="list">
-                {expenses.map((exp, idx) => (
+                {expensesList.map((exp, idx) => (
                   <li key={idx} className="list-item">
                     <span><strong>€{Number(exp.amount).toFixed(2)}</strong> ({exp.category}) paid by <em>{exp.participant?.name || 'Unknown'}</em></span>
                     <span className="text-muted">{new Date(exp.date).toLocaleDateString()}</span>
@@ -406,7 +555,7 @@ export default function App() {
               <input type="number" step="any" placeholder="Start Longitude" value={planForm.startLon} onChange={e => setPlanForm({...planForm, startLon: e.target.value})} required />
               <input type="datetime-local" value={planForm.startTime} onChange={e => setPlanForm({...planForm, startTime: e.target.value})} required />
               <input type="number" placeholder="Speed (km/h)" value={planForm.speedKmh} onChange={e => setPlanForm({...planForm, speedKmh: e.target.value})} required />
-              <button type="submit" className="btn-primary" style={{ gridColumn: '1 / -1' }}>Generate Optimized Plan</button>
+              <button type="submit" className="btn-primary" style={{ gridColumn: '1 / -1' }} disabled={loading}>{loading ? 'Generating...' : 'Generate Optimized Plan'}</button>
             </form>
 
             <h3>Scheduled Visits</h3>
@@ -451,34 +600,15 @@ export default function App() {
           <div>
             <h2>Balances & Settlements</h2>
             
-            <h3>Individual Balances</h3>
-            <ul className="list" style={{ marginBottom: '25px' }}>
-              {Object.keys(balances).length > 0 ? Object.entries(balances).map(([id, balance]) => {
-                const participant = currentTrip.participants[id];
-                return (
-                  <li key={id} className="list-item">
-                    <span>{participant ? participant.name : 'Unknown'}</span>
-                    <strong style={{ color: balance >= 0 ? '#10b981' : '#ef4444' }}>
-                      {balance >= 0 ? `+€${balance.toFixed(2)}` : `-€${Math.abs(balance).toFixed(2)}`}
-                    </strong>
-                  </li>
-                );
-              }) : <p className="text-muted">No balances calculated yet. Add some expenses!</p>}
-            </ul>
-
             <h3>Suggested Debt Settlements</h3>
             {settlements.length > 0 ? (
               <ul className="list">
-                {settlements.map((s, idx) => {
-                  const fromName = currentTrip.participants[s.fromParticipantId]?.name || 'Someone';
-                  const toName = currentTrip.participants[s.toParticipantId]?.name || 'Someone';
-                  return (
-                    <li key={idx} className="list-item settlement-item">
-                      <span><strong>{fromName}</strong> pays <strong>{toName}</strong></span>
-                      <span className="settlement-amount">€{s.amount.toFixed(2)}</span>
-                    </li>
-                  );
-                })}
+                {settlements.map((s, idx) => (
+                  <li key={idx} className="list-item settlement-item">
+                    <span><strong>{s.from}</strong> pays <strong>{s.to}</strong></span>
+                    <span className="settlement-amount">€{s.amount.toFixed(2)}</span>
+                  </li>
+                ))}
               </ul>
             ) : <p className="text-muted">All debts are settled or no expenses logged yet!</p>}
           </div>
