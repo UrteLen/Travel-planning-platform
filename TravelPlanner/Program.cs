@@ -13,18 +13,20 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter()));
+        
 builder.Services.AddSingleton<TripService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<BudgetService>();
 builder.Services.AddScoped<SettlementService>();
 builder.Services.AddScoped<SummaryService>();
 builder.Services.AddScoped<PdfExportService>();
-builder.Services.AddSingleton<TripVersionService>();   
+builder.Services.AddSingleton<TripVersionService>();
 builder.Services.AddSingleton<VisitScheduler>();
 builder.Services.AddScoped<DayPlanningService>();
-builder.Services.AddScoped<PlanService>();           
-
+builder.Services.AddScoped<PlanService>();
 
 var app = builder.Build();
 
