@@ -12,6 +12,11 @@ public class ActivityVotingService
         Guid activityId,
         VoteType voteType)
     {
+        if (!Enum.IsDefined(voteType))
+        {
+            throw new ArgumentException("Invalid vote type.");
+        }
+        
         if (!trip.Participants.ContainsKey(participantId))
         {
             throw new KeyNotFoundException("Participant not found in this trip.");
