@@ -47,6 +47,7 @@ export default function App() {
 
     setActiveParticipantId(selected?.id || '');
     setCurrentTrip(tripData);
+    setCalendarFocus('');
     setErrorMessage('');
     
     if (tripData?.budget?.categoryLimits) {
@@ -626,6 +627,7 @@ export default function App() {
         {activeTab === 'calendar' && (
           <div>
             <CalendarPanel
+                key={currentTrip.id}
                 tripId={currentTrip.id}
                 startDate={currentTrip.startDate}
                 endDate={currentTrip.endDate}

@@ -16,7 +16,7 @@ public class ActivityVotingService
         {
             throw new ArgumentException("Invalid vote type.");
         }
-        
+
         if (!trip.Participants.ContainsKey(participantId))
         {
             throw new KeyNotFoundException("Participant not found in this trip.");
@@ -36,7 +36,7 @@ public class ActivityVotingService
     {
         return activity.Votes.Values.Count(vote => vote == VoteType.Upvote);
     }
-    
+
     public int GetDownvoteCount(TripActivity activity)
     {
         return activity.Votes.Values.Count(vote => vote == VoteType.Downvote);

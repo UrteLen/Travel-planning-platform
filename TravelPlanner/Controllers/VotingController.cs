@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TravelPlanner.Enums;
 using TravelPlanner.Requests;
 using TravelPlanner.Service;
 using TravelPlanner.Responses;
@@ -50,14 +51,15 @@ namespace TravelPlanner.Controllers
         [HttpGet("results")]
         public IActionResult GetVoteResults(
             Guid tripId,
-            Guid activityId)
+            Guid activityId,
+            [FromQuery] Guid? participantId = null)
         {
             var trip = _tripService.FindTripById(tripId);
             if (trip == null)
             {
                 return NotFound("Trip not found.");
             }
-            
+
             var activity = trip.Activities
                 .FirstOrDefault(x => x.Id == activityId);
             if (activity == null)
@@ -67,7 +69,19 @@ namespace TravelPlanner.Controllers
 
             var upvotes = _activityVotingService.GetUpvoteCount(activity);
             var downvotes = _activityVotingService.GetDownvoteCount(activity);
-            var results = new VoteResultsResponse(upvotes, downvotes);
+
+            VoteType? participantVote = null;
+
+            if (participantId.HasValue &&
+                activity.Votes.TryGetValue(participantId.Value, out var existingVote))
+            {
+                participantVote = existingVote;
+            }
+
+            var results = new VoteResultsResponse(
+                upvotes,
+                downvotes,
+                participantVote);
 
             return Ok(results);
         }

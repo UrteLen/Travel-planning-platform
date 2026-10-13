@@ -65,7 +65,7 @@ namespace TravelPlanner.Controllers
             var dailySchedule = _activitySchedulingService.GetDailySchedule(trip.ScheduledActivities, date);
             return Ok(dailySchedule);
         }
-        
+
         [HttpDelete("{scheduledActivityId}")]
         public IActionResult RemoveScheduledActivity(
             Guid tripId,
@@ -77,9 +77,9 @@ namespace TravelPlanner.Controllers
                 return NotFound("Trip not found.");
             }
 
-            if (!_activitySchedulingService.RemoveScheduledActivity(trip, scheduledActivityId)) 
+            if (!_activitySchedulingService.RemoveScheduledActivity(trip, scheduledActivityId))
             {
-                return NotFound("Scheduled activity not found."); 
+                return NotFound("Scheduled activity not found.");
             }
 
             return NoContent();

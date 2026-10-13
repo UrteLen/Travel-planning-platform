@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './ActivitiesPanel.css';
 
 const API_BASE = import.meta.env.VITE_API_URL
@@ -65,8 +65,11 @@ export default function ActivitiesPanel({
   onScheduleChange, onOpenCalendar
 }) {
   const [activities, setActivities] = useState([]);
-  const [counts, setCounts] = useState({});
-  const [, setVoteVersion] = useState(0);
+  const [voteResults, setVoteResults] = useState({ key: '', byActivity: {} });
+  const currentVoteKey = `${tripId || ''}:${participantId || ''}`;
+  const counts = voteResults.key === currentVoteKey ? voteResults.byActivity : {};
+  const votesReady = voteResults.key === currentVoteKey;
+  const latestLoadId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [busyVote, setBusyVote] = useState('');
   const [adding, setAdding] = useState(false);
@@ -86,27 +89,29 @@ export default function ActivitiesPanel({
   const [scheduling, setScheduling] = useState(false);
 
   const loadActivities = useCallback(async (signal) => {
+    const loadId = ++latestLoadId.current;
     try {
       const list = tripId
         ? await api(`/trips/${tripId}/activities/prioritized`, { signal })
         : [];
       const resultPairs = await Promise.all(list.map(async activity => {
-        const data = await api(`/trips/${tripId}/activities/${activity.id}/votes/results`, { signal });
+        const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : '';
+        const data = await api(`/trips/${tripId}/activities/${activity.id}/votes/results${query}`, { signal });
         return [activity.id, data];
       }));
-      if (!signal?.aborted) {
+      if (!signal?.aborted && loadId === latestLoadId.current) {
         setActivities(list);
-        setCounts(Object.fromEntries(resultPairs));
+        setVoteResults({ key: currentVoteKey, byActivity: Object.fromEntries(resultPairs) });
         setError('');
       }
     } catch (err) {
-      if (err.name !== 'AbortError' && !signal?.aborted) {
+      if (err.name !== 'AbortError' && !signal?.aborted && loadId === latestLoadId.current) {
         setError(err.message === 'Failed to fetch' ? 'Cannot connect to the server. Is the backend running on port 5154?' : err.message);
       }
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal?.aborted && loadId === latestLoadId.current) setLoading(false);
     }
-  }, [tripId]);
+  }, [tripId, participantId, currentVoteKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -116,14 +121,6 @@ export default function ActivitiesPanel({
     });
     return () => controller.abort();
   }, [loadActivities]);
-
-  const votes = {};
-  if (tripId && participantId) {
-    for (const activity of activities) {
-      const vote = window.sessionStorage.getItem(`travel-vote:${tripId}:${participantId}:${activity.id}`);
-      if (vote === 'Upvote' || vote === 'Downvote') votes[activity.id] = vote;
-    }
-  }
 
   const displayed = useMemo(() => {
     const list = activities.filter(activity => category === 'All' || activity.category === category);
@@ -170,16 +167,12 @@ export default function ActivitiesPanel({
   async function castVote(activityId, voteType) {
     if (!participantId) { setError('Choose a participant before voting.'); return; }
     setBusyVote(activityId); setError(''); setMessage('');
-    const previous = votes[activityId];
+    const previous = counts[activityId]?.participantVote;
     const removing = previous === voteType;
     try {
       await api(`/trips/${tripId}/activities/${activityId}/votes/${participantId}`, removing
         ? { method: 'DELETE' }
         : { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ voteType }) });
-      const key = `travel-vote:${tripId}:${participantId}:${activityId}`;
-      if (removing) window.sessionStorage.removeItem(key);
-      else window.sessionStorage.setItem(key, voteType);
-      setVoteVersion(version => version + 1);
       setSelection(null);
       await loadActivities();
     } catch (err) { setError(err.message); }
@@ -317,7 +310,7 @@ export default function ActivitiesPanel({
           {displayed.map(activity => {
             const up = counts[activity.id]?.upvotes ?? 0;
             const down = counts[activity.id]?.downvotes ?? 0;
-            const userVote = votes[activity.id];
+            const userVote = counts[activity.id]?.participantVote;
             return (
               <li key={activity.id} className="list-item ap-activity-row">
                 <div className="ap-activity-details">
@@ -329,10 +322,10 @@ export default function ActivitiesPanel({
                   </div>
                   <div className="ap-votes" role="group" aria-label={`Votes for ${activity.name}`}>
                     <button type="button" className={`btn-secondary${userVote === 'Upvote' ? ' ap-voted' : ''}`}
-                            aria-pressed={userVote === 'Upvote'} disabled={!participantId || busyVote === activity.id}
+                            aria-pressed={userVote === 'Upvote'} disabled={!participantId || !votesReady || busyVote === activity.id}
                             onClick={() => castVote(activity.id, 'Upvote')}>👍 {up}</button>
                     <button type="button" className={`btn-secondary${userVote === 'Downvote' ? ' ap-voted' : ''}`}
-                            aria-pressed={userVote === 'Downvote'} disabled={!participantId || busyVote === activity.id}
+                            aria-pressed={userVote === 'Downvote'} disabled={!participantId || !votesReady || busyVote === activity.id}
                             onClick={() => castVote(activity.id, 'Downvote')}>👎 {down}</button>
                   </div>
                 </div>

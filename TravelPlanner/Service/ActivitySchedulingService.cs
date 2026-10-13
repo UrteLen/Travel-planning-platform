@@ -82,14 +82,14 @@ public class ActivitySchedulingService
         var otherActivities = trip.ScheduledActivities
             .Where(x => x != ignoredActivity)
             .ToList();
-        
+
         if (speedKmh <= 0 || !double.IsFinite(speedKmh))
         {
             throw new ArgumentException(
                 "Speed must be a positive, finite number.",
                 nameof(speedKmh));
         }
-        
+
         if (scheduledActivity.StartTime.Date < trip.StartDate.Date)
         {
             throw new InvalidOperationException("Activity cannot be scheduled before the trip starts.");

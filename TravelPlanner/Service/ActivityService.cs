@@ -27,7 +27,7 @@ public class ActivityService
             optional,
             openingTime,
             closingTime);
-        
+
         trip.Activities.Add(activity);
 
         return activity;

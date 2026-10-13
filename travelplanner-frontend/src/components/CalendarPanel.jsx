@@ -6,6 +6,12 @@ const API_BASE = import.meta.env.VITE_API_URL
   : 'http://localhost:5154/api';
 
 function dayFrom(value) { return value ? String(value).slice(0, 10) : ''; }
+function initialDay(focusDate, firstDay, lastDay) {
+  const requested = dayFrom(focusDate) || firstDay || dayFrom(new Date().toISOString());
+  if (firstDay && requested < firstDay) return firstDay;
+  if (lastDay && requested > lastDay) return firstDay || lastDay;
+  return requested;
+}
 function moveDay(day, amount) {
   const date = new Date(`${day}T12:00:00`);
   date.setDate(date.getDate() + amount);
@@ -21,8 +27,13 @@ function timeFrom(value) {
 }
 function formatDuration(value) {
   if (!value) return '';
-  const [h, m] = String(value).split(':').map(Number);
-  return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
+  const parts = String(value).match(/^(-)?(?:(\d+)\.)?(\d+):(\d+):(\d+(?:\.\d+)?)$/);
+  if (!parts) return '';
+  const [, sign = '', days = '0', hours, minutes, seconds] = parts;
+  const h = Number(days) * 24 + Number(hours);
+  const m = Number(minutes);
+  const s = Number(seconds);
+  return sign + ([h && `${h}h`, m && `${m}m`, s && `${s}s`].filter(Boolean).join(' ') || '0m');
 }
 async function apiError(response) {
   const body = await response.text();
@@ -37,7 +48,7 @@ async function apiError(response) {
 export default function CalendarPanel({ tripId, startDate, endDate, focusDate, plannedVisits = [], revision = 0 }) {
   const firstDay = dayFrom(startDate);
   const lastDay = dayFrom(endDate);
-  const [day, setDay] = useState(() => focusDate || firstDay || dayFrom(new Date().toISOString()));
+  const [day, setDay] = useState(() => initialDay(focusDate, firstDay, lastDay));
   const [scheduled, setScheduled] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

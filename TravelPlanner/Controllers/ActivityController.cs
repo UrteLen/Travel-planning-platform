@@ -32,26 +32,43 @@ namespace TravelPlanner.Controllers
             if (trip is null)
                 return NotFound("Trip not found.");
 
-            if (!Enum.TryParse<Category>(request.Category, true, out var category))
+            if (!Enum.TryParse<Category>(request.Category, true, out var category)
+                || !Enum.IsDefined(category))
+            {
                 return BadRequest("Invalid category.");
+            }
 
-            var location = new GeoLocation(request.Latitude, request.Longitude);
-            var duration = TimeSpan.FromHours(request.DurationHours);
+            if (!double.IsFinite(request.DurationHours) || request.DurationHours <= 0)
+            {
+                return BadRequest("Activity duration must be a finite number greater than zero.");
+            }
 
-            var activity = _activityService.AddActivity(
-                trip,
-                request.Name,
-                category,
-                location,
-                duration,
-                request.EstimatedCost,
-                request.Optional,
-                request.OpeningTime,
-                request.ClosingTime);
+            try
+            {
+                var location = new GeoLocation(request.Latitude, request.Longitude);
+                var duration = TimeSpan.FromHours(request.DurationHours);
 
-            var response = ToActivityResponse(activity);
+                var activity = _activityService.AddActivity(
+                    trip,
+                    request.Name,
+                    category,
+                    location,
+                    duration,
+                    request.EstimatedCost,
+                    request.Optional,
+                    request.OpeningTime,
+                    request.ClosingTime);
 
-            return Ok(response);
+                return Ok(ToActivityResponse(activity));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (OverflowException)
+            {
+                return BadRequest("Activity duration is too large.");
+            }
         }
 
         [HttpGet("prioritized")]
@@ -65,7 +82,7 @@ namespace TravelPlanner.Controllers
 
             var activities = _activityVotingService.PrioritizeByVotes(trip.Activities);
             var responses = new List<ActivityResponse>();
-            
+
             foreach (var activity in activities)
             {
                 responses.Add(ToActivityResponse(activity));
@@ -102,7 +119,7 @@ namespace TravelPlanner.Controllers
 
             var activities = _activityVotingService.SelectActivitiesForPlan(trip.Activities, budget, availableTime);
             var responses = new List<ActivityResponse>();
-            
+
             foreach (var activity in activities)
             {
                 responses.Add(ToActivityResponse(activity));
