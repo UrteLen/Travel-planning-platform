@@ -34,8 +34,13 @@ namespace TravelPlanner.Controllers
 
             try
             {
+                if (request.VoteType is null)
+                {
+                    return BadRequest("Vote type is required.");
+                }
+
                 _activityVotingService.Vote(trip, participantId,
-                    activityId, request.VoteType);
+                    activityId, request.VoteType.Value);
 
                 return Ok();
             }
