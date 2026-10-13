@@ -73,9 +73,16 @@ public class ActivitySchedulingService
             .ToList();
     }
 
-    public ScheduledActivity ScheduleActivity(Trip trip, TripActivity activity,
-        DateTime startTime, double speedKmh)
+    private void ValidateSchedule(
+        Trip trip,
+        ScheduledActivity scheduledActivity,
+        double speedKmh,
+        ScheduledActivity? ignoredActivity = null)
     {
+        var otherActivities = trip.ScheduledActivities
+            .Where(x => x != ignoredActivity)
+            .ToList();
+        
         if (speedKmh <= 0 || !double.IsFinite(speedKmh))
         {
             throw new ArgumentException(
@@ -83,8 +90,7 @@ public class ActivitySchedulingService
                 nameof(speedKmh));
         }
         
-        var scheduledActivity = new ScheduledActivity(activity, startTime);
-        if (startTime.Date < trip.StartDate.Date)
+        if (scheduledActivity.StartTime.Date < trip.StartDate.Date)
         {
             throw new InvalidOperationException("Activity cannot be scheduled before the trip starts.");
         }
@@ -99,20 +105,20 @@ public class ActivitySchedulingService
             throw new InvalidOperationException("Activity cannot be scheduled outside of its opening hours.");
         }
 
-        foreach (ScheduledActivity existingActivity in trip.ScheduledActivities)
+        foreach (ScheduledActivity existingActivity in otherActivities)
         {
             if (HasTimeConflict(scheduledActivity, existingActivity))
             {
                 throw new InvalidOperationException("Activity cannot be scheduled due to a time conflict with another activity.");
             }
         }
-        
-        var previousActivity = trip.ScheduledActivities
-            .Where(x => x.StartTime < startTime)
+
+        var previousActivity = otherActivities
+            .Where(x => x.StartTime < scheduledActivity.StartTime)
             .OrderByDescending(x => x.StartTime)
             .FirstOrDefault();
-        var nextActivity = trip.ScheduledActivities
-            .Where(x => x.StartTime > startTime)
+        var nextActivity = otherActivities
+            .Where(x => x.StartTime > scheduledActivity.StartTime)
             .OrderBy(x => x.StartTime)
             .FirstOrDefault();
 
@@ -135,7 +141,17 @@ public class ActivitySchedulingService
                 throw new InvalidOperationException("Activity cannot be scheduled due to a travel time conflict with another activity.");
             }
         }
+    }
+
+    public ScheduledActivity ScheduleActivity(Trip trip, TripActivity activity,
+        DateTime startTime, double speedKmh)
+    {
+        var scheduledActivity = new ScheduledActivity(activity, startTime);
+
+        ValidateSchedule(trip, scheduledActivity, speedKmh);
+
         trip.ScheduledActivities.Add(scheduledActivity);
+
         return scheduledActivity;
     }
 
@@ -149,5 +165,26 @@ public class ActivitySchedulingService
         }
 
         return trip.ScheduledActivities.Remove(scheduledActivity);
+    }
+
+    public ScheduledActivity UpdateScheduledActivity(
+        Trip trip,
+        Guid scheduledActivityId,
+        DateTime newStartTime,
+        double speedKmh)
+    {
+        var scheduledActivity = trip.ScheduledActivities
+            .FirstOrDefault(x => x.Id == scheduledActivityId);
+
+        if (scheduledActivity == null)
+        {
+            throw new KeyNotFoundException("Scheduled activity not found.");
+        }
+
+        var candidate = new ScheduledActivity(scheduledActivity.Activity, newStartTime);
+        ValidateSchedule(trip, candidate, speedKmh, scheduledActivity);
+        scheduledActivity.StartTime = newStartTime;
+
+        return scheduledActivity;
     }
 }

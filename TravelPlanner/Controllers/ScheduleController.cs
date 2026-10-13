@@ -46,6 +46,10 @@ namespace TravelPlanner.Controllers
             {
                 return Conflict(ex.Message);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet]
@@ -79,6 +83,38 @@ namespace TravelPlanner.Controllers
             }
 
             return NoContent();
+        }
+
+        [HttpPut("{scheduledActivityId}")]
+        public IActionResult UpdateScheduledActivity(
+            Guid tripId,
+            Guid scheduledActivityId,
+            [FromBody] UpdateScheduledActivityRequest request)
+        {
+            var trip = _tripService.FindTripById(tripId);
+            if (trip == null)
+            {
+                return NotFound("Trip not found.");
+            }
+
+            try
+            {
+                var updatedActivity = _activitySchedulingService.UpdateScheduledActivity(trip, scheduledActivityId,
+                    request.StartTime, request.SpeedKmh);
+                return Ok(updatedActivity);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }
