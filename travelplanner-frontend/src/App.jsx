@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import './App.css';
+import ActivitiesPanel from './components/ActivitiesPanel';
+import CalendarPanel from './components/CalendarPanel';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
@@ -8,6 +10,9 @@ const API_BASE = import.meta.env.VITE_API_URL
 export default function App() {
   const [currentTrip, setCurrentTrip] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeParticipantId, setActiveParticipantId] = useState('');
+  const [scheduleRevision, setScheduleRevision] = useState(0);
+  const [calendarFocus, setCalendarFocus] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -26,7 +31,21 @@ export default function App() {
 
   const requestIdRef = useRef(0);
 
-  function handleTripLoaded(tripData) {
+  function handleTripLoaded(tripData, preferredParticipantName = '') {
+    const people = Object.values(tripData?.participants || []);
+
+    const preferred = preferredParticipantName
+        ? people.filter(
+            person => person.name.toLowerCase() === preferredParticipantName.toLowerCase()
+        ).at(-1)
+        : null;
+
+    const selected =
+        preferred ||
+        people.find(person => person.id === activeParticipantId) ||
+        people[0];
+
+    setActiveParticipantId(selected?.id || '');
     setCurrentTrip(tripData);
     setErrorMessage('');
     
@@ -82,7 +101,7 @@ export default function App() {
       });
       if (!res.ok) await handleApiError(res);
       const data = await res.json();
-      handleTripLoaded(data);
+      handleTripLoaded(data, organizerName);
       setCreateForm({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
     } catch (err) {
       setErrorMessage(err.message);
@@ -116,7 +135,7 @@ export default function App() {
       });
       if (!res.ok) await handleApiError(res);
       const data = await res.json();
-      handleTripLoaded(data);
+      handleTripLoaded(data, participantName);
       setJoinForm({ inviteCode: '', participantName: '' });
     } catch (err) {
       setErrorMessage(err.message);
@@ -562,6 +581,25 @@ export default function App() {
         {activeTab === 'itinerary' && (
           <div>
             <h2>Itinerary & Plan Generator</h2>
+            <ActivitiesPanel
+                tripId={currentTrip.id}
+                participants={participantsList}
+                participantId={activeParticipantId}
+                onParticipantChange={setActiveParticipantId}
+                tripStartDate={currentTrip.startDate}
+                tripEndDate={currentTrip.endDate}
+                defaultLatitude={planForm.startLat}
+                defaultLongitude={planForm.startLon}
+                onScheduleChange={() => setScheduleRevision(value => value + 1)}
+                onOpenCalendar={date => {
+                  setCalendarFocus(date || currentTrip.startDate.slice(0, 10));
+                  setActiveTab('calendar');
+                }}
+            />
+            <details style={{ marginTop: '30px' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: '15px' }}>
+                Generate Optimized Route
+              </summary>
             <form onSubmit={handleGeneratePlan} className="form-grid" style={{ marginBottom: '20px' }}>
               <input type="number" step="any" placeholder="Start Latitude" value={planForm.startLat} onChange={e => setPlanForm({...planForm, startLat: e.target.value})} required />
               <input type="number" step="any" placeholder="Start Longitude" value={planForm.startLon} onChange={e => setPlanForm({...planForm, startLon: e.target.value})} required />
@@ -581,30 +619,20 @@ export default function App() {
                 ))}
               </ul>
             ) : <p className="text-muted">No itinerary planned yet. Add activities and generate a plan!</p>}
+            </details>
           </div>
         )}
 
         {activeTab === 'calendar' && (
           <div>
-            <h2>Trip Calendar View</h2>
-            <p className="text-muted" style={{ marginBottom: '20px' }}>Schedule overview from {new Date(currentTrip.startDate).toLocaleDateString()} to {new Date(currentTrip.endDate).toLocaleDateString()}</p>
-            
-            <div className="calendar-box" style={{ background: '#f1f5f9', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-              <h3>Planned Timeline</h3>
-              {planResult.length > 0 ? (
-                <ul className="list" style={{ marginTop: '10px' }}>
-                  {planResult.map((visit, idx) => (
-                    <li key={idx} className="list-item" style={{ background: '#fff', marginBottom: '8px', borderRadius: '6px' }}>
-                      <div>
-                        <strong>{visit.name}</strong>
-                        <div className="text-muted">{new Date(visit.arrivalTime).toLocaleString()}</div>
-                      </div>
-                      <span className="badge ok">Scheduled</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : <p className="text-muted">No calendar events scheduled. Generate an itinerary plan first.</p>}
-            </div>
+            <CalendarPanel
+                tripId={currentTrip.id}
+                startDate={currentTrip.startDate}
+                endDate={currentTrip.endDate}
+                focusDate={calendarFocus}
+                plannedVisits={planResult}
+                revision={scheduleRevision}
+            />
           </div>
         )}
 

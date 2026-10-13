@@ -1,0 +1,63 @@
+/* Only layout adjustments: inputs, buttons, lists and colors come from App.css. */
+html {
+  scrollbar-gutter: stable;
+}
+.ap-shell { margin: 18px 0 0; }
+.ap-shell * { box-sizing: border-box; }
+.ap-shell h3 { text-align: center; font-size: 1.05rem; margin: 22px 0 16px; }
+.ap-shell h3:first-child { margin-top: 12px; }
+.ap-shell button:disabled { cursor: not-allowed; opacity: .6; }
+.ap-shell .error-banner { margin-bottom: 14px; }
+.ap-shell > .text-muted { margin: 12px 0; }
+.ap-shell .ap-main-button { display: block; width: 100%; margin: 12px 0 22px; }
+.ap-shell .ap-activity-form { margin: 0 0 26px; padding: 0 0 22px; border-bottom: 1px solid #e2e8f0; }
+.ap-shell .ap-activity-form input:not([type='checkbox']),
+.ap-shell .ap-activity-form select,
+.ap-shell .ap-selection-form input { width: 100%; min-width: 0; }
+.ap-shell .ap-checkbox { display: flex; align-items: center; gap: 8px; }
+.ap-shell .ap-checkbox input { width: 18px; height: 18px; }
+.ap-shell .ap-advanced > summary { cursor: pointer; font-weight: 600; }
+.ap-shell .ap-advanced-fields { margin-top: 14px; }
+.ap-shell .ap-advanced-fields label, .ap-shell .ap-schedule-form label { display: flex; flex-direction: column; gap: 6px; }
+.ap-shell .ap-filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.ap-shell .ap-filter-row select { flex: 1 1 145px; min-width: 0; padding: 9px; font-size: 14px; }
+.ap-shell .ap-empty { text-align: center; margin: 14px 0 22px; }
+.ap-shell .ap-activities { margin-bottom: 25px; }
+.ap-shell .ap-activity-row { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.ap-shell .ap-activity-details { min-width: 0; flex: 1 1 220px; }
+.ap-shell .ap-activity-details strong { display: block; margin-bottom: 4px; }
+.ap-shell .ap-votes { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+.ap-shell .ap-votes button { padding: 6px 12px; }
+.ap-shell .ap-votes .ap-voted { background: #dbeafe; border-color: #2563eb; }
+.ap-shell .ap-schedule-toggle { flex: 0 0 auto; }
+.ap-shell .ap-schedule-form { flex: 1 0 100%; padding: 14px 0 3px; border-top: 1px solid #e2e8f0; }
+.ap-shell .ap-schedule-form button, .ap-shell .ap-selection-form button { width: 100%; }
+.ap-shell .ap-selection-form { margin: 0 0 18px; }
+.ap-shell .ap-selection-results { margin: 15px 0; }
+.ap-shell .ap-selection-results > .text-muted { text-align: center; }
+.ap-shell .ap-selection-results .list-item { flex-wrap: wrap; gap: 8px; }
+@media (max-width: 520px) {
+  .ap-shell .ap-filter-row select { flex-basis: 100%; }
+  .ap-shell .ap-schedule-toggle { width: 100%; }
+}
+.ap-shell > h3 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.ap-shell > h3:first-child {
+  margin-top: 0;
+}
+
+.ap-selection-form label {
+  display: block;
+  text-align: left;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ap-selection-form input {
+  width: 100%;
+}
+.ap-shell .ap-calendar-link { margin-left: 8px; padding: 6px 10px; }
