@@ -138,4 +138,16 @@ public class ActivitySchedulingService
         trip.ScheduledActivities.Add(scheduledActivity);
         return scheduledActivity;
     }
+
+    public bool RemoveScheduledActivity(Trip trip, Guid scheduledActivityId)
+    {
+        var scheduledActivity = trip.ScheduledActivities
+            .FirstOrDefault(x => x.Id == scheduledActivityId);
+        if (scheduledActivity == null)
+        {
+            return false;
+        }
+
+        return trip.ScheduledActivities.Remove(scheduledActivity);
+    }
 }

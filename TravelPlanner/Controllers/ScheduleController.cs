@@ -5,7 +5,7 @@ using TravelPlanner.Service;
 namespace TravelPlanner.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/trips/{tripId}/scheduled-activities")]
     public class ScheduleController : ControllerBase
     {
         private readonly TripService _tripService;
@@ -17,7 +17,7 @@ namespace TravelPlanner.Controllers
             this._activitySchedulingService = activitySchedulingService;
         }
 
-        [HttpPost("{tripId}")]
+        [HttpPost]
         public IActionResult ScheduleActivity(
             Guid tripId,
             [FromBody] ScheduleActivityRequest request)
@@ -48,7 +48,7 @@ namespace TravelPlanner.Controllers
             }
         }
 
-        [HttpGet("{tripId}/daily")]
+        [HttpGet]
         public IActionResult GetDailySchedule(
             Guid tripId,
             [FromQuery] DateTime date)
@@ -60,6 +60,25 @@ namespace TravelPlanner.Controllers
             }
             var dailySchedule = _activitySchedulingService.GetDailySchedule(trip.ScheduledActivities, date);
             return Ok(dailySchedule);
+        }
+        
+        [HttpDelete("{scheduledActivityId}")]
+        public IActionResult RemoveScheduledActivity(
+            Guid tripId,
+            Guid scheduledActivityId)
+        {
+            var trip = _tripService.FindTripById(tripId);
+            if (trip == null)
+            {
+                return NotFound("Trip not found.");
+            }
+
+            if (!_activitySchedulingService.RemoveScheduledActivity(trip, scheduledActivityId)) 
+            {
+                return NotFound("Scheduled activity not found."); 
+            }
+
+            return NoContent();
         }
     }
 }
