@@ -28,6 +28,14 @@ namespace TravelPlanner.Controllers
                 return NotFound();
             }
 
+            if (request.ActivityId == Guid.Empty ||
+                request.StartTime == default ||
+                !double.IsFinite(request.SpeedKmh) ||
+                request.SpeedKmh <= 0)
+            {
+                return BadRequest("Valid ActivityId, StartTime and positive SpeedKmh are required.");
+            }
+
             var activity = trip.Activities
                 .FirstOrDefault(x => x.Id == request.ActivityId);
             if (activity == null)
