@@ -24,11 +24,9 @@ public class ActivityService
             location,
             duration,
             estimatedCost,
-            optional)
-        {
-            OpeningTime = openingTime,
-            ClosingTime = closingTime
-        };
+            optional,
+            openingTime,
+            closingTime);
 
         trip.Activities.Add(activity);
 

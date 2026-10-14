@@ -1,0 +1,30 @@
+/* Minimal additions to the existing App.css styling. */
+.cp-shell { margin: 0; }
+.cp-shell * { box-sizing: border-box; }
+.cp-shell h2 { text-align: center; margin: 0 0 20px; }
+.cp-shell h3 { text-align: center; font-size: 1.05rem; margin: 25px 0 14px; }
+.cp-shell .cp-date-controls { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cp-shell .cp-date-controls input { width: 165px; min-width: 0; }
+.cp-shell button:disabled { cursor: not-allowed; opacity: .6; }
+.cp-shell .cp-current-day, .cp-shell .cp-empty { text-align: center; margin: 12px 0 18px; }
+.cp-shell .cp-row { gap: 12px; flex-wrap: wrap; }
+.cp-shell .cp-row > span { margin-left: auto; white-space: nowrap; }
+@media (max-width: 520px) {
+  .cp-shell .cp-date-controls input { width: 100%; order: -1; }
+  .cp-shell .cp-date-controls button { flex: 1; }
+  .cp-shell .cp-row > span { margin-left: 0; }
+}
+/* Scheduling actions use the same button/input styles as Urtė's existing tabs. */
+.cp-shell .cp-message { text-align: center; }
+.cp-shell .cp-row-details { min-width: 0; flex: 1 1 160px; }
+.cp-shell .cp-row-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-left: auto; }
+.cp-shell .cp-time { white-space: nowrap; }
+.cp-shell .cp-row-actions button { padding: 6px 10px; }
+.cp-shell .cp-edit-form { width: 100%; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+.cp-shell .cp-edit-form label { display: flex; flex-direction: column; gap: 5px; }
+.cp-shell .cp-edit-form input { width: 100%; min-width: 0; }
+.cp-shell .cp-edit-buttons { display: flex; gap: 8px; }
+.cp-shell .cp-edit-buttons button { flex: 1; }
+@media (max-width: 520px) {
+  .cp-shell .cp-row-actions { margin-left: 0; width: 100%; }
+}

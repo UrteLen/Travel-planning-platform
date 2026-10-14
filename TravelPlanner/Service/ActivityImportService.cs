@@ -30,7 +30,15 @@ public class ActivityImportService
             var category = Enum.Parse<Category>(dto.Category, ignoreCase: true);
             var location = new GeoLocation(dto.Latitude, dto.Longitude);
             var duration = TimeSpan.FromHours(dto.DurationHours);
-            var activity = new TripActivity(dto.Name, category, location, duration, dto.EstimatedCost, dto.Optional);
+            var activity = new TripActivity(
+                dto.Name,
+                category,
+                location,
+                duration,
+                dto.EstimatedCost,
+                dto.Optional,
+                dto.OpeningTime,
+                dto.ClosingTime);
 
             activities.Add(activity);
         }

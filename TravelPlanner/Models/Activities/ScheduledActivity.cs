@@ -2,6 +2,7 @@ namespace TravelPlanner.Models.Activities;
 
 public class ScheduledActivity
 {
+    public Guid Id { get; init; } = Guid.NewGuid();
     public TripActivity Activity { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime => StartTime + Activity.Duration;
