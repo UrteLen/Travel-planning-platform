@@ -11,13 +11,13 @@ namespace TravelPlanner.Controllers
     {
         private readonly TripService _tripService;
         private readonly PlanService _planService;
-        private readonly TripVersionService _versions;
+        private readonly TripVersionService _versionService;
 
-        public PlanController(TripService tripService, PlanService planService, TripVersionService versions)
+        public PlanController(TripService tripService, PlanService planService, TripVersionService versionService)
         {
             _tripService = tripService;
             _planService = planService;
-            _versions = versions;
+            _versionService = versionService;
         }
 
         [HttpPost("{tripId}/generate")]
@@ -61,7 +61,7 @@ namespace TravelPlanner.Controllers
             if (_tripService.FindTripById(tripId) is null)
                 return NotFound(new { error = "Trip not found" });
 
-            var history = _versions.GetHistory(tripId).Select(v => new
+            var history = _versionService.GetHistory(tripId).Select(v => new
             {
                 v.VersionNumber,
                 v.Timestamp,

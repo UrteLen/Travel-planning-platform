@@ -12,29 +12,29 @@ namespace TravelPlanner.Service
     public class PlanService
     {
         private readonly DayPlanningService _dayPlanning;
-        private readonly TripVersionService _versions;
+        private readonly TripVersionService _versionService;
 
-        public PlanService(DayPlanningService dayPlanning, TripVersionService versions)
+        public PlanService(DayPlanningService dayPlanning, TripVersionService versionService)
         {
             _dayPlanning = dayPlanning;
-            _versions = versions;
+            _versionService = versionService;
         }
 
         public List<PlannedVisit> GeneratePlan(Trip trip, GeoLocation start, DateTime startTime, double speedKmh, string changedBy)
         {
             var places = trip.Activities.Select(ToPlace).ToList();
             trip.Plan = _dayPlanning.DayPlan(places, start, startTime, speedKmh);
-            _versions.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
+            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
             return trip.Plan;
         }
 
         public TripVersion RestoreVersion(Trip trip, int versionNumber, string changedBy)
         {
-            var version = _versions.Restore(trip.Id, versionNumber, changedBy);
+            var version = _versionService.Restore(trip.Id, versionNumber, changedBy);
 
-            trip.Plan = _versions.CopyPlan(version.PlanSnapshot);
+            trip.Plan = _versionService.CopyPlan(version.PlanSnapshot);
             trip.Budget = version.BudgetSnapshot.Clone();
-            trip.Activities = _versions.CopyActivities(version.ActivitiesSnapshot);
+            trip.Activities = _versionService.CopyActivities(version.ActivitiesSnapshot);
 
             return version;
         }
