@@ -31,29 +31,29 @@ namespace TravelPlanner.Controllers
             _versionService = versionService;
         }
 
-          [HttpPost("limits")]
-  public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
-  {
-      var trip = _tripService.FindTripByCode(request.TripCode);
-      if (trip == null)
-          return NotFound(new { error = "Trip not found" });
+        [HttpPost("limits")]
+        public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
+        {
+            var trip = _tripService.FindTripByCode(request.TripCode);
+            if (trip == null)
+                return NotFound(new { error = "Trip not found" });
 
-      var parsed = new Dictionary<Category, decimal>();
-      foreach (var pair in request.CategoryLimits)
-      {
-          if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
-              return BadRequest(new { error = $"Unknown category: {pair.Key}" });
-          if (pair.Value < 0)
-              return BadRequest(new { error = $"Limit for {pair.Key} cannot be negative" });
-          parsed[category] = pair.Value;
-      }
+            var parsed = new Dictionary<Category, decimal>();
+            foreach (var pair in request.CategoryLimits)
+            {
+                if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
+                     return BadRequest(new { error = $"Unknown category: {pair.Key}" });
+                if (pair.Value < 0)
+                    return BadRequest(new { error = $"Limit for {pair.Key} cannot be negative" });
+                parsed[category] = pair.Value;
+            }
 
-      foreach (var pair in parsed)
-          trip.Budget.CategoryLimits[pair.Key] = pair.Value;
+            foreach (var pair in parsed)
+                trip.Budget.CategoryLimits[pair.Key] = pair.Value;
 
-      _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
-      return Ok(new { message = "Budget limits set" });
-  }
+            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+            return Ok(new { message = "Budget limits set" });
+        }
 
         [HttpPost("expense")]
         public IActionResult AddExpense([FromBody] AddExpenseRequest request)

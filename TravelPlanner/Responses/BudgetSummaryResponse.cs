@@ -1,5 +1,8 @@
 namespace TravelPlanner.Responses;
 
+namespace TravelPlanner.Responses;
+
 public record BudgetSummaryResponse(
     List<CategoryBudgetResult> Results,
-    decimal CostPerPerson);
+    decimal CostPerPerson,
+    decimal TotalSpent);
