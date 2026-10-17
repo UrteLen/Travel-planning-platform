@@ -10,7 +10,7 @@ namespace TravelPlanner.Service
 {
     public class TripVersionService
     {
-        private readonly Dictionary<Guid, List<TripVersion>> _versions = new();
+        private readonly Dictionary<Guid, List<TripVersion>> _versionService = new();
         private readonly object _lock = new();
 
         public TripVersion SaveVersion(Guid tripId, Budget budget, List<PlannedVisit> plan, List<TripActivity> activities, string changedBy)
@@ -63,10 +63,10 @@ namespace TravelPlanner.Service
 
         private List<TripVersion> GetList(Guid tripId)
         {
-            if (!_versions.TryGetValue(tripId, out var list))
+            if (!_versionService.TryGetValue(tripId, out var list))
             {
                 list = new List<TripVersion>();
-                _versions[tripId] = list;
+                _versionService[tripId] = list;
             }
             return list;
         }

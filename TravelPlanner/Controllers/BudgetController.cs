@@ -18,17 +18,17 @@ namespace TravelPlanner.Controllers
         private readonly SettlementService _settlementService;
         private readonly SummaryService _summaryService;
         private readonly PdfExportService _pdfExportService;
-        private readonly TripVersionService _versions;
+        private readonly TripVersionService _versionService;
         public BudgetController(TripService tripService, BudgetService budgetService,
                                 SettlementService settlementService, SummaryService summaryService,
-                                PdfExportService pdfExportService, TripVersionService versions)
+                                PdfExportService pdfExportService, TripVersionService versionService)
         {
             this._tripService = tripService;
             this._budgetService = budgetService;
             this._settlementService = settlementService;
             this._summaryService = summaryService;
             this._pdfExportService = pdfExportService;
-            this._versions = versions;
+            _versionService = versionService;
         }
 
         [HttpPost("limits")]
@@ -46,7 +46,7 @@ namespace TravelPlanner.Controllers
                     trip.Budget.CategoryLimits[category] = pair.Value;
                 }
             }
-            _versions.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
 
             return Ok(new { message = "Budget limits set" });
         }
@@ -66,7 +66,7 @@ namespace TravelPlanner.Controllers
                 return BadRequest(new { error = "Participant not found" });
 
             trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
-            _versions.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
+            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
             return Ok(new { message = "Expense added" });
         }
 
