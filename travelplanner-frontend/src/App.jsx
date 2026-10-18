@@ -65,10 +65,13 @@ export default function App() {
       fetchTripDetails(tripData.id, tripData.inviteCode);
     }
   }
-
+    function handleVersionRestored(restoredTrip) {
+      handleTripLoaded(restoredTrip);
+      setActiveTab('overview');
+    }
      async function handleApiError(res) {
      throw new Error(await readError(res));
-   }
+    }
 
   async function handleCreateTrip(e) {
     e.preventDefault();
@@ -367,7 +370,7 @@ async function handleGeneratePlan(e) {
 }
 
   const categoryResults = summary?.results || null;
-  const totalSpent = summary?.results ? summary.results.reduce((acc, r) => acc + r.actualSpent, 0) : 0;
+  const totalSpent = expensesList.reduce((acc, exp) => acc + Number(exp.amount || 0), 0);
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
   const costPerPerson = summary?.costPerPerson ?? 0;
 
@@ -437,7 +440,8 @@ async function handleGeneratePlan(e) {
         {activeTab === 'overview' && (
           <div>
             <h2>Trip Overview</h2>
-            {summary ? (
+            <BudgetAlerts results={categoryResults} expenses={expensesList} />
+              {summary ? (
               <div className="stats-grid">
                 <div className="stat-box">
                   <h3>Total Planned Budget</h3>
@@ -524,9 +528,10 @@ async function handleGeneratePlan(e) {
         )}
 
         {activeTab === 'expenses' && (
-          <div>
-            <h2>Record an Expense</h2>
-            <form onSubmit={handleAddExpense} className="form-grid" style={{ marginBottom: '30px' }}>
+  <div>
+    <h2>Record an Expense</h2>
+    <BudgetAlerts results={categoryResults} expenses={expensesList} />
+    <form onSubmit={handleAddExpense} className="form-grid" style={{ marginBottom: '30px' }}>
               <input 
                 type="number" 
                 step="0.01" 
