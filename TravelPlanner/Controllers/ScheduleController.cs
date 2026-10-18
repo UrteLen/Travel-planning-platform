@@ -65,6 +65,11 @@ public class ScheduleController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (OverflowException)
+        {
+            return BadRequest(
+                "Travel time is too large. Check the travel speed.");
+        }
     }
 
     [HttpGet]
@@ -138,6 +143,11 @@ public class ScheduleController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (OverflowException)
+        {
+            return BadRequest(
+                "Travel time is too large. Check the travel speed.");
         }
     }
 }
