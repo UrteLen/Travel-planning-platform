@@ -1,4 +1,4 @@
-using TravelPlanner.Models.Planning;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {

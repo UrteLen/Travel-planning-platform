@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using TravelPlanner.Models;
 using TravelPlanner.Service;
 using TravelPlanner.Requests;
-using TravelPlanner.Models.Trips;
 using TravelPlanner.Responses;
 
 namespace TravelPlanner.Controllers

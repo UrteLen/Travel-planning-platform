@@ -1,6 +1,5 @@
 using TravelPlanner.Extensions;
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Trips;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 

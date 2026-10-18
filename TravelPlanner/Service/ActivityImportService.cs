@@ -1,8 +1,7 @@
 using System.Text.Json;
 using TravelPlanner.Imports;
 using TravelPlanner.Enums;
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Geography;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TravelPlanner.Extensions;
 using TravelPlanner.Enums;
-using TravelPlanner.Models.Budgets;
+using TravelPlanner.Models;
 using TravelPlanner.Responses;
 
 namespace TravelPlanner.Service

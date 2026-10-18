@@ -1,7 +1,6 @@
 using TravelPlanner.Enums;
-using TravelPlanner.Models.Geography;
 
-namespace TravelPlanner.Models.Activities;
+namespace TravelPlanner.Models;
 
 public class TripActivity
 {

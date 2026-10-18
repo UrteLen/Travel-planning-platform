@@ -1,6 +1,5 @@
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Trips;
 using TravelPlanner.Enums;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 

@@ -1,6 +1,5 @@
 using System;
-using TravelPlanner.Models.Planning;
-using TravelPlanner.Models.Geography;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Extensions
 {

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using TravelPlanner.Models;
 using TravelPlanner.Responses;
-using TravelPlanner.Models.Planning;
 
 namespace TravelPlanner.Reports
 {

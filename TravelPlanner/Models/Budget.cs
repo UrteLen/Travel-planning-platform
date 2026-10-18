@@ -1,8 +1,6 @@
-using System.Collections.Generic;
 using TravelPlanner.Enums;
-using System.Linq;
 
-namespace TravelPlanner.Models.Budgets
+namespace TravelPlanner.Models
 {
     public class Budget
     {

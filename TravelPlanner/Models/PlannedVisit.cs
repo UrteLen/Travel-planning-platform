@@ -1,4 +1,4 @@
-namespace TravelPlanner.Models.Planning
+namespace TravelPlanner.Models
 {
     public record PlannedVisit(Place Place, DateTime ArrivalTime, DateTime DepartureTime);
 }
