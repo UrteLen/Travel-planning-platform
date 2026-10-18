@@ -71,3 +71,7 @@ html {
 @media (max-width: 520px) {
   .ap-shell .ap-import-controls button { width: 100%; }
 }
+
+.ap-shell .ap-import-section { margin-bottom: 24px; }
+.ap-shell .ap-import-section > summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+.ap-shell .ap-import-section .ap-import-form { margin-bottom: 0; }

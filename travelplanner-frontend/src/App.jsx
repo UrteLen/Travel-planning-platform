@@ -407,7 +407,7 @@ export default function App() {
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
       <div className="tabs">
-        {['overview', 'participants', 'categories', 'expenses', 'itinerary', 'calendar', 'settlements'].map(tab => (
+        {['overview', 'participants', 'categories', 'expenses', 'activities', 'itinerary', 'calendar', 'settlements'].map(tab => (
           <button 
             key={tab} 
             onClick={() => setActiveTab(tab)}
@@ -579,9 +579,9 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'itinerary' && (
+        {activeTab === 'activities' && (
           <div>
-            <h2>Itinerary & Plan Generator</h2>
+            <h2>Activities & Voting</h2>
             <ActivitiesPanel
                 tripId={currentTrip.id}
                 participants={participantsList}
@@ -597,10 +597,13 @@ export default function App() {
                   setActiveTab('calendar');
                 }}
             />
-            <details style={{ marginTop: '30px' }}>
-              <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: '15px' }}>
-                Generate Optimized Route
-              </summary>
+          </div>
+        )}
+
+        {activeTab === 'itinerary' && (
+          <div>
+            <h2>Itinerary</h2>
+            <h3>Generate Optimized Route</h3>
             <form onSubmit={handleGeneratePlan} className="form-grid" style={{ marginBottom: '20px' }}>
               <input type="number" step="any" placeholder="Start Latitude" value={planForm.startLat} onChange={e => setPlanForm({...planForm, startLat: e.target.value})} required />
               <input type="number" step="any" placeholder="Start Longitude" value={planForm.startLon} onChange={e => setPlanForm({...planForm, startLon: e.target.value})} required />
@@ -609,7 +612,7 @@ export default function App() {
               <button type="submit" className="btn-primary" style={{ gridColumn: '1 / -1' }} disabled={loading}>{loading ? 'Generating...' : 'Generate Optimized Plan'}</button>
             </form>
 
-            <h3>Scheduled Visits</h3>
+            <h3>Generated Itinerary</h3>
             {planResult.length > 0 ? (
               <ul className="list">
                 {planResult.map((visit, idx) => (
@@ -619,8 +622,8 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-muted">No itinerary planned yet. Add activities and generate a plan!</p>}
-            </details>
+            ) : <p className="text-muted">No itinerary planned yet. Add activities in the Activities tab, then generate a plan here.</p>}
+            <button type="button" className="btn-secondary" onClick={() => setActiveTab('activities')}>Open Activities</button>
           </div>
         )}
 

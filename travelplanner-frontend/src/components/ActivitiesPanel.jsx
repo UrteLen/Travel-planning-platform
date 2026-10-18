@@ -310,6 +310,8 @@ export default function ActivitiesPanel({
         </form>
       )}
 
+      <details className="ap-import-section">
+        <summary>Import Activities from JSON</summary>
       <form onSubmit={importActivities} className="ap-import-form" aria-label="Import activities">
         <label htmlFor="activity-import-file">Import Activities from JSON</label>
         <p id="activity-import-help" className="text-muted">
@@ -324,6 +326,7 @@ export default function ActivitiesPanel({
           </button>
         </div>
       </form>
+      </details>
 
       <h3>Suggested Activities ({activities.length})</h3>
       <div className="ap-filter-row">
