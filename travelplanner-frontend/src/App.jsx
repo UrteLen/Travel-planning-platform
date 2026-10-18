@@ -66,11 +66,16 @@ export default function App() {
     }
   }
     function handleVersionRestored(restoredTrip) {
-      handleTripLoaded(restoredTrip);
-      setActiveTab('overview');
+      if (restoredTrip) {
+        handleTripLoaded(restoredTrip);
+      } else if (currentTrip?.id && currentTrip?.inviteCode) {
+          fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
+        }
+       setActiveTab('overview');
     }
-     async function handleApiError(res) {
-     throw new Error(await readError(res));
+
+    async function handleApiError(res) {
+      throw new Error(await readError(res));
     }
 
   async function handleCreateTrip(e) {
@@ -369,6 +374,8 @@ async function handleGeneratePlan(e) {
   }
 }
 
+  const participantsList = Object.values(currentTrip?.participants || {});
+  const expensesList = currentTrip?.budget?.expenses || [];
   const categoryResults = summary?.results || null;
   const totalSpent = expensesList.reduce((acc, exp) => acc + Number(exp.amount || 0), 0);
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
@@ -409,8 +416,7 @@ async function handleGeneratePlan(e) {
     );
   }
 
-  const participantsList = Object.values(currentTrip.participants || {});
-  const expensesList = currentTrip?.budget?.expenses || [];
+
 
   return (
     <div className="container">
