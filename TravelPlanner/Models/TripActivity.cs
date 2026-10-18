@@ -44,6 +44,30 @@ public class TripActivity
                 nameof(estimatedCost));
         }
 
+        if (openingTime.HasValue != closingTime.HasValue)
+        {
+            throw new ArgumentException(
+                "Provide both opening and closing times, or neither.");
+        }
+
+        if (openingTime.HasValue &&
+            (openingTime.Value < TimeSpan.Zero ||
+             openingTime.Value >= TimeSpan.FromDays(1)))
+        {
+            throw new ArgumentException(
+                "Opening time must be between 00:00 and less than 24:00.",
+                nameof(openingTime));
+        }
+
+        if (closingTime.HasValue &&
+            (closingTime.Value < TimeSpan.Zero ||
+             closingTime.Value >= TimeSpan.FromDays(1)))
+        {
+            throw new ArgumentException(
+                "Closing time must be between 00:00 and less than 24:00.",
+                nameof(closingTime));
+        }
+
         Name = name;
         Category = category;
         Location = location;
