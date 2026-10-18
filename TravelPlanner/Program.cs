@@ -24,6 +24,7 @@ builder.Services.AddScoped<ActivityVotingService>();
 builder.Services.AddScoped<BudgetService>();
 builder.Services.AddScoped<SettlementService>();
 builder.Services.AddScoped<SummaryService>();
+builder.Services.AddScoped<ActivityImportService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddSingleton<TripVersionService>();
 builder.Services.AddSingleton<VisitScheduler>();

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Service;
 using TravelPlanner.Requests;
@@ -15,13 +16,15 @@ namespace TravelPlanner.Controllers
         private readonly TripService _tripService;
         private readonly ActivityService _activityService;
         private readonly ActivityVotingService _activityVotingService;
+        private readonly ActivityImportService _activityImportService;
 
         public ActivityController(TripService tripService, ActivityService activityService,
-            ActivityVotingService activityVotingService)
+            ActivityVotingService activityVotingService, ActivityImportService activityImportService)
         {
-            this._tripService = tripService;
-            this._activityService = activityService;
-            this._activityVotingService = activityVotingService;
+            _tripService = tripService;
+            _activityService = activityService;
+            _activityVotingService = activityVotingService;
+            _activityImportService = activityImportService;
         }
 
         [HttpPost]
@@ -60,6 +63,48 @@ namespace TravelPlanner.Controllers
                     request.ClosingTime);
 
                 return Ok(ToActivityResponse(activity));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (OverflowException)
+            {
+                return BadRequest("Activity duration is too large.");
+            }
+        }
+
+        [HttpPost("import")]
+        public IActionResult Import(Guid tripId, IFormFile file)
+        {
+            var trip = _tripService.FindTripById(tripId);
+
+            if (trip is null)
+                return NotFound("Trip not found.");
+
+            if (file.Length == 0)
+            {
+                return BadRequest("File is empty.");
+            }
+
+            try
+            {
+                using Stream stream = file.OpenReadStream();
+
+                var activities = _activityImportService.LoadActivitiesFromJson(stream);
+                var responses = new List<ActivityResponse>();
+
+                foreach (var activity in activities)
+                {
+                    trip.Activities.Add(activity);
+                    responses.Add(ToActivityResponse(activity));
+                }
+
+                return Ok(responses);
+            }
+            catch (JsonException)
+            {
+                return BadRequest("Invalid JSON file.");
             }
             catch (ArgumentException ex)
             {
