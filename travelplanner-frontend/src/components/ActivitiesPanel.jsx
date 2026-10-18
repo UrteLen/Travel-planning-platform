@@ -73,6 +73,9 @@ export default function ActivitiesPanel({
   const [loading, setLoading] = useState(true);
   const [busyVote, setBusyVote] = useState('');
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const importInput = useRef(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(() => initialForm(defaultLatitude, defaultLongitude));
   const [sort, setSort] = useState('priority');
@@ -162,6 +165,33 @@ export default function ActivitiesPanel({
       await loadActivities();
     } catch (err) { setError(err.message); }
     finally { setAdding(false); }
+  }
+
+  async function importActivities(event) {
+    event.preventDefault();
+    setError(''); setMessage('');
+    if (!importFile || !tripId || importing) return;
+    if (importFile.size === 0) {
+      setError('Choose a JSON file that is not empty.'); return;
+    }
+    const body = new FormData();
+    body.append('file', importFile);
+    setImporting(true);
+    try {
+      const imported = await api(`/trips/${tripId}/activities/import`, {
+        method: 'POST', body
+      });
+      setSelection(null);
+      setCategory('All');
+      setImportFile(null);
+      if (importInput.current) importInput.current.value = '';
+      setMessage(imported.length === 0
+        ? 'The file contained no activities.'
+        : `${imported.length} ${imported.length === 1 ? 'activity imported' : 'activities imported'} into this trip.`);
+      await loadActivities();
+    } catch (err) {
+      setError(err.message === 'Failed to fetch' ? 'Cannot connect to the server. Check that the backend is running.' : err.message);
+    } finally { setImporting(false); }
   }
 
   async function castVote(activityId, voteType) {
@@ -279,6 +309,21 @@ export default function ActivitiesPanel({
           <button type="button" className="btn-secondary" onClick={() => setCreateOpen(false)}>Cancel</button>
         </form>
       )}
+
+      <form onSubmit={importActivities} className="ap-import-form" aria-label="Import activities">
+        <label htmlFor="activity-import-file">Import Activities from JSON</label>
+        <p id="activity-import-help" className="text-muted">
+          Choose a JSON file containing a list of activities. Imported activities are added to this trip.
+        </p>
+        <div className="ap-import-controls">
+          <input id="activity-import-file" ref={importInput} type="file" accept=".json,application/json"
+                 aria-describedby="activity-import-help" disabled={importing} required
+                 onChange={event => setImportFile(event.target.files?.[0] ?? null)} />
+          <button type="submit" className="btn-secondary" disabled={importing || !importFile || !tripId}>
+            {importing ? 'Importing...' : 'Import Activities'}
+          </button>
+        </div>
+      </form>
 
       <h3>Suggested Activities ({activities.length})</h3>
       <div className="ap-filter-row">
