@@ -24,6 +24,7 @@ public class ActivityVotingService
 
         var activity = trip.Activities
             .FirstOrDefault(x => x.Id == activityId);
+
         if (activity == null)
         {
             throw new KeyNotFoundException("Activity not found in the trip.");
@@ -51,6 +52,7 @@ public class ActivityVotingService
 
         var activity = trip.Activities
             .FirstOrDefault(x => x.Id == activityId);
+
         if (activity == null)
         {
             throw new KeyNotFoundException("Activity not found in the trip.");
@@ -66,7 +68,11 @@ public class ActivityVotingService
             .ThenByDescending(activity => GetUpvoteCount(activity))
             .ToList();
     }
-    public List<TripActivity> SelectActivitiesForPlan(IEnumerable<TripActivity> activities, decimal availableBudget, TimeSpan availableTime)
+
+    public List<TripActivity> SelectActivitiesForPlan(
+        IEnumerable<TripActivity> activities,
+        decimal availableBudget,
+        TimeSpan availableTime)
     {
         var prioritizedActivities = PrioritizeByVotes(activities);
         var selectedActivities = new List<TripActivity>();
@@ -87,6 +93,7 @@ public class ActivityVotingService
                 usedTime += activity.Duration;
             }
         }
+
         return selectedActivities;
     }
 }
