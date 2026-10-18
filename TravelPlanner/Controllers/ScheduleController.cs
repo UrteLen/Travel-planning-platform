@@ -2,127 +2,142 @@ using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Requests;
 using TravelPlanner.Service;
 
-namespace TravelPlanner.Controllers
+namespace TravelPlanner.Controllers;
+
+[ApiController]
+[Route("api/trips/{tripId}/scheduled-activities")]
+public class ScheduleController : ControllerBase
 {
-    [ApiController]
-    [Route("api/trips/{tripId}/scheduled-activities")]
-    public class ScheduleController : ControllerBase
+    private readonly TripService _tripService;
+    private readonly ActivitySchedulingService _activitySchedulingService;
+
+    public ScheduleController(
+        TripService tripService,
+        ActivitySchedulingService activitySchedulingService)
     {
-        private readonly TripService _tripService;
-        private readonly ActivitySchedulingService _activitySchedulingService;
+        _tripService = tripService;
+        _activitySchedulingService = activitySchedulingService;
+    }
 
-        public ScheduleController(TripService tripService, ActivitySchedulingService activitySchedulingService)
+    [HttpPost]
+    public IActionResult ScheduleActivity(
+        Guid tripId,
+        [FromBody] ScheduleActivityRequest request)
+    {
+        var trip = _tripService.FindTripById(tripId);
+
+        if (trip == null)
         {
-            this._tripService = tripService;
-            this._activitySchedulingService = activitySchedulingService;
+            return NotFound();
         }
 
-        [HttpPost]
-        public IActionResult ScheduleActivity(
-            Guid tripId,
-            [FromBody] ScheduleActivityRequest request)
+        if (request.ActivityId == Guid.Empty ||
+            request.StartTime == default ||
+            !double.IsFinite(request.SpeedKmh) ||
+            request.SpeedKmh <= 0)
         {
-            var trip = _tripService.FindTripById(tripId);
-            if (trip == null)
-            {
-                return NotFound();
-            }
-
-            if (request.ActivityId == Guid.Empty ||
-                request.StartTime == default ||
-                !double.IsFinite(request.SpeedKmh) ||
-                request.SpeedKmh <= 0)
-            {
-                return BadRequest("Valid ActivityId, StartTime and positive SpeedKmh are required.");
-            }
-
-            var activity = trip.Activities
-                .FirstOrDefault(x => x.Id == request.ActivityId);
-            if (activity == null)
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                var scheduledActivity = _activitySchedulingService.ScheduleActivity(trip, activity,
-                    request.StartTime, request.SpeedKmh);
-
-                return Ok(scheduledActivity);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            return BadRequest("Valid ActivityId, StartTime and positive SpeedKmh are required.");
         }
 
-        [HttpGet]
-        public IActionResult GetDailySchedule(
-            Guid tripId,
-            [FromQuery] DateTime date)
+        var activity = trip.Activities
+            .FirstOrDefault(x => x.Id == request.ActivityId);
+
+        if (activity == null)
         {
-            var trip = _tripService.FindTripById(tripId);
-            if (trip == null)
-            {
-                return NotFound();
-            }
-            var dailySchedule = _activitySchedulingService.GetDailySchedule(trip.ScheduledActivities, date);
-            return Ok(dailySchedule);
+            return NotFound();
         }
 
-        [HttpDelete("{scheduledActivityId}")]
-        public IActionResult RemoveScheduledActivity(
-            Guid tripId,
-            Guid scheduledActivityId)
+        try
         {
-            var trip = _tripService.FindTripById(tripId);
-            if (trip == null)
-            {
-                return NotFound("Trip not found.");
-            }
+            var scheduledActivity = _activitySchedulingService.ScheduleActivity(
+                trip,
+                activity,
+                request.StartTime,
+                request.SpeedKmh);
 
-            if (!_activitySchedulingService.RemoveScheduledActivity(trip, scheduledActivityId))
-            {
-                return NotFound("Scheduled activity not found.");
-            }
+            return Ok(scheduledActivity);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
-            return NoContent();
+    [HttpGet]
+    public IActionResult GetDailySchedule(
+        Guid tripId,
+        [FromQuery] DateTime date)
+    {
+        var trip = _tripService.FindTripById(tripId);
+
+        if (trip == null)
+        {
+            return NotFound();
         }
 
-        [HttpPut("{scheduledActivityId}")]
-        public IActionResult UpdateScheduledActivity(
-            Guid tripId,
-            Guid scheduledActivityId,
-            [FromBody] UpdateScheduledActivityRequest request)
-        {
-            var trip = _tripService.FindTripById(tripId);
-            if (trip == null)
-            {
-                return NotFound("Trip not found.");
-            }
+        var dailySchedule = _activitySchedulingService.GetDailySchedule(trip.ScheduledActivities, date);
 
-            try
-            {
-                var updatedActivity = _activitySchedulingService.UpdateScheduledActivity(trip, scheduledActivityId,
-                    request.StartTime, request.SpeedKmh);
-                return Ok(updatedActivity);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+        return Ok(dailySchedule);
+    }
+
+    [HttpDelete("{scheduledActivityId}")]
+    public IActionResult RemoveScheduledActivity(
+        Guid tripId,
+        Guid scheduledActivityId)
+    {
+        var trip = _tripService.FindTripById(tripId);
+
+        if (trip == null)
+        {
+            return NotFound("Trip not found.");
+        }
+
+        if (!_activitySchedulingService.RemoveScheduledActivity(trip, scheduledActivityId))
+        {
+            return NotFound("Scheduled activity not found.");
+        }
+
+        return NoContent();
+    }
+
+    [HttpPut("{scheduledActivityId}")]
+    public IActionResult UpdateScheduledActivity(
+        Guid tripId,
+        Guid scheduledActivityId,
+        [FromBody] UpdateScheduledActivityRequest request)
+    {
+        var trip = _tripService.FindTripById(tripId);
+
+        if (trip == null)
+        {
+            return NotFound("Trip not found.");
+        }
+
+        try
+        {
+            var updatedActivity = _activitySchedulingService.UpdateScheduledActivity(
+                trip,
+                scheduledActivityId,
+                request.StartTime,
+                request.SpeedKmh);
+
+            return Ok(updatedActivity);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 }
