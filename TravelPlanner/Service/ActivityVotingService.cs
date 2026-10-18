@@ -70,7 +70,7 @@ public class ActivityVotingService
 
     public List<TripActivity> SelectActivitiesForPlan(
         IEnumerable<TripActivity> activities,
-        decimal availableBudget,
+        decimal? availableBudget,
         TimeSpan availableTime)
     {
         var prioritizedActivities = PrioritizeByVotes(activities);
@@ -81,14 +81,19 @@ public class ActivityVotingService
 
         foreach (var activity in prioritizedActivities)
         {
-            bool fitsBudget = usedBudget + activity.EstimatedCost <= availableBudget;
-            bool fitsTime = usedTime + activity.Duration <= availableTime;
+            bool fitsBudget = !availableBudget.HasValue ||
+                              activity.EstimatedCost <= availableBudget.Value - usedBudget;
+            bool fitsTime = activity.Duration <= availableTime - usedTime;
 
             if (fitsBudget && fitsTime)
             {
                 selectedActivities.Add(activity);
 
-                usedBudget += activity.EstimatedCost;
+                if (availableBudget.HasValue)
+                {
+                    usedBudget += activity.EstimatedCost;
+                }
+
                 usedTime += activity.Duration;
             }
         }

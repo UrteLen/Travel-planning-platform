@@ -150,8 +150,8 @@ public class ActivityController : ControllerBase
     [HttpGet("selected")]
     public IActionResult GetSelectedActivities(
         Guid tripId,
-        [FromQuery] decimal budget,
-        [FromQuery] double hours)
+        [FromQuery] decimal? budget,
+        [FromQuery] double? hours)
     {
         var trip = _tripService.FindTripById(tripId);
 
@@ -160,15 +160,20 @@ public class ActivityController : ControllerBase
             return NotFound("Trip not found.");
         }
 
-        if (budget < 0 || hours < 0 || !double.IsFinite(hours))
+        if (budget < 0)
         {
-            return BadRequest("Budget and hours must be non-negative and finite.");
+            return BadRequest("Budget must be non-negative.");
+        }
+
+        if (!hours.HasValue || !double.IsFinite(hours.Value) || hours.Value < 0)
+        {
+            return BadRequest("Hours are required and must be non-negative and finite.");
         }
 
         TimeSpan availableTime;
         try
         {
-            availableTime = TimeSpan.FromHours(hours);
+            availableTime = TimeSpan.FromHours(hours.Value);
         }
         catch (OverflowException)
         {
