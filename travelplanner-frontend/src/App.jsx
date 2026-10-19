@@ -9,7 +9,7 @@ import { readError } from './apiError';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : 'http://localhost:5154/api';
+  : 'https://localhost:7157/api';
 
 export default function App() {
   const [currentTrip, setCurrentTrip] = useState(null);
