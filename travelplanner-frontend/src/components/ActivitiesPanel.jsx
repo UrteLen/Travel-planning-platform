@@ -110,7 +110,7 @@ export default function ActivitiesPanel({
       }
     } catch (err) {
       if (err.name !== 'AbortError' && !signal?.aborted && loadId === latestLoadId.current) {
-        setError(err.message === 'Failed to fetch' ? 'Cannot connect to the server. Is the backend running on port 5154?' : err.message);
+        setError(err.message === 'Failed to fetch' ? `Cannot connect to ${API_BASE}. Check that the backend is running.` : err.message);
       }
     } finally {
       if (!signal?.aborted && loadId === latestLoadId.current) setLoading(false);
