@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace TravelPlanner.Service
 {
     public class TripVersionService
     {
-        private readonly Dictionary<Guid, List<TripVersion>> _versionService = new();
+        private readonly Dictionary<Guid, List<TripVersion>> _versionsByTrip = new();
         private readonly object _lock = new();
 
         public TripVersion SaveVersion(Guid tripId, Budget budget, List<PlannedVisit> plan, List<TripActivity> activities, string changedBy)
@@ -27,12 +28,18 @@ namespace TravelPlanner.Service
 
         public List<TripVersion> GetHistory(Guid tripId)
         {
-            lock (_lock) { return new List<TripVersion>(GetList(tripId)); }
+            lock (_lock)
+            {
+                return new List<TripVersion>(GetList(tripId));
+            }
         }
 
         public TripVersion? GetVersion(Guid tripId, int versionNumber)
         {
-            lock (_lock) { return GetList(tripId).FirstOrDefault(v => v.VersionNumber == versionNumber); }
+            lock (_lock)
+            {
+                return GetList(tripId).FirstOrDefault(v => v.VersionNumber == versionNumber);
+            }
         }
 
         public TripVersion Restore(Guid tripId, int versionNumber, string changedBy)
@@ -63,10 +70,10 @@ namespace TravelPlanner.Service
 
         private List<TripVersion> GetList(Guid tripId)
         {
-            if (!_versionService.TryGetValue(tripId, out var list))
+            if (!_versionsByTrip.TryGetValue(tripId, out var list))
             {
                 list = new List<TripVersion>();
-                _versionService[tripId] = list;
+                _versionsByTrip[tripId] = list;
             }
             return list;
         }
