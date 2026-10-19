@@ -5,6 +5,7 @@ import CalendarPanel from './components/CalendarPanel';
 import HistoryPanel from './components/HistoryPanel';
 import SummaryPanel from './components/SummaryPanel';
 import BudgetAlerts from './components/BudgetAlerts';
+import SettlementsPanel from './components/SettlementsPanel';
 import { readError } from './apiError';
 
 const API_BASE = import.meta.env.VITE_API_URL
@@ -687,13 +688,7 @@ async function handleGeneratePlan(e) {
         )}
 
         {activeTab === 'settlements' && (
-          <div>
-            <h2>Balances & Settlements</h2>
-            <div className="card" style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', textAlign: 'center', padding: '40px 20px' }}>
-              <h3>Settlements Feature Coming Soon</h3>
-              <p className="text-muted">Debt calculation and settlement engine is currently being integrated.</p>
-            </div>
-          </div>
+          <SettlementsPanel apiBase={API_BASE} trip={currentTrip} />
         )}
       </div>
     </div>
