@@ -86,7 +86,8 @@ namespace TravelPlanner.Controllers
 
             var results = _budgetService.CheckAllCategories(trip.Budget);
             var costPerPerson = _budgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
-            return Ok(new BudgetSummaryResponse(results, costPerPerson));
+            var totalSpent = _budgetService.GetTotalActualSpend(trip.Budget);
+            return Ok(new BudgetSummaryResponse(results, costPerPerson, totalSpent));
         }
 
         [HttpGet("settlement")]
