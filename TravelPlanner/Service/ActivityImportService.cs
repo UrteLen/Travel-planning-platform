@@ -35,7 +35,15 @@ public class ActivityImportService
                 throw new ArgumentException("Invalid category.");
             }
 
-            var location = new GeoLocation(dto.Latitude, dto.Longitude);
+            if (!dto.Latitude.HasValue || !dto.Longitude.HasValue)
+            {
+                throw new ArgumentException(
+                    "Latitude and longitude are required.");
+            }
+
+            var location = new GeoLocation(
+                dto.Latitude.Value,
+                dto.Longitude.Value);
 
             if (!double.IsFinite(dto.DurationHours) || dto.DurationHours <= 0)
             {
