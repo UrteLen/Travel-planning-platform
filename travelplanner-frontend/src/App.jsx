@@ -65,17 +65,18 @@ export default function App() {
       fetchTripDetails(tripData.id, tripData.inviteCode);
     }
   }
-    function handleVersionRestored(restoredTrip) {
-      if (restoredTrip) {
-        handleTripLoaded(restoredTrip);
-      } else if (currentTrip?.id && currentTrip?.inviteCode) {
-          fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
-        }
-       setActiveTab('overview');
-    }
-
-    async function handleApiError(res) {
-      throw new Error(await readError(res));
+    async function handleVersionRestored() {
+      if (!currentTrip?.id) return;
+      try {
+        const res = await fetch(`${API_BASE}/trip/${currentTrip.id}`);
+        if (!res.ok) throw new Error(await readError(res));
+        const freshTrip = await res.json();
+        setCategoryLimits({ Food: 100, Transport: 100, Activities: 100, Accommodation: 100 });
+        handleTripLoaded(freshTrip);
+      } catch (err) {
+        setErrorMessage('Failed to reload the restored trip: ' + err.message);
+      }
+      setActiveTab('overview');
     }
 
   async function handleCreateTrip(e) {
@@ -105,7 +106,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...createForm, name, destination, organizerName })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       handleTripLoaded(data, organizerName);
       setCreateForm({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
@@ -139,7 +140,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteCode, participantName })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       handleTripLoaded(data, participantName);
       setJoinForm({ inviteCode: '', participantName: '' });
@@ -159,11 +160,11 @@ export default function App() {
     try {
       const results = await Promise.allSettled([
         fetch(`${API_BASE}/budget/summary?tripCode=${tripCode}`).then(async res => {
-          if (!res.ok) await handleApiError(res);
+          if (!res.ok) throw new Error(await readError(res));
           return res.json();
         }),
         fetch(`${API_BASE}/plan/${tripId}`).then(async res => {
-          if (!res.ok) await handleApiError(res);
+          if (!res.ok) throw new Error(await readError(res));
           return res.json();
         })
       ]);
@@ -221,7 +222,7 @@ export default function App() {
         participantId: expenseForm.participantId
       })
     });
-    if (!res.ok) await handleApiError(res);
+    if (!res.ok) throw new Error(await readError(res));
 
     const newExpense = {
       amount: amountNum,
@@ -277,7 +278,7 @@ export default function App() {
           categoryLimits: sanitizedLimits
         })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
 
       await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
     } catch (err) {
@@ -308,7 +309,7 @@ export default function App() {
           participantName
         })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       handleTripLoaded(data);
       setNewParticipantName('');
@@ -359,7 +360,7 @@ async function handleGeneratePlan(e) {
         changedBy: Object.values(currentTrip.participants || {}).find(p => p.id === activeParticipantId)?.name || planForm.changedBy
       })
     });
-    if (!res.ok) await handleApiError(res);
+    if (!res.ok) throw new Error(await readError(res));
     const data = await res.json();
     setPlanResult(data);
     await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
