@@ -20,3 +20,33 @@ This platform will be designed to help group of planners plan, budget and settle
 10. **Plan version history, automatic re-planning and summary:** Who changed the plan and when, comparison and restoration of versions without affecting other changes, when an activity is cancelled, the system suggests an alternative and a comprehensive trip summary (expenses, timetables, payments) with the option to export to PDF.
 
 ---
+
+## Local development with HTTPS
+
+Requires .NET 10 and Node.js with npm.
+
+Trust the local HTTPS certificate once on each developer's computer:
+
+```sh
+dotnet dev-certs https --trust
+```
+
+Start the backend from the repository root:
+
+```sh
+dotnet run --project TravelPlanner/TravelPlanner.csproj --launch-profile https
+```
+
+In a separate terminal, start the frontend:
+
+```sh
+cd travelplanner-frontend
+npm install
+npm run dev
+```
+
+- Website: https://localhost:5173
+- API and Postman base URL: https://localhost:7157
+
+Vite prepares the local certificate files automatically. Certificates and private
+keys stay outside the repository and must not be committed or shared.

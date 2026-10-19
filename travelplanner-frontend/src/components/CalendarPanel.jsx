@@ -3,7 +3,7 @@ import './CalendarPanel.css';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : 'http://localhost:5154/api';
+  : 'https://localhost:7157/api';
 
 function dayFrom(value) { return value ? String(value).slice(0, 10) : ''; }
 function initialDay(focusDate, firstDay, lastDay) {

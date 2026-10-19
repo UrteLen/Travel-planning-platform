@@ -3,7 +3,7 @@ import './ActivitiesPanel.css';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-  : 'http://localhost:5154/api';
+  : 'https://localhost:7157/api';
 
 const CATEGORIES = ['Activities', 'Food', 'Transport', 'Accommodation'];
 
