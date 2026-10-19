@@ -24,6 +24,7 @@ namespace TravelPlanner.Service
 
                     page.Content().Column(column =>
                     {
+                        column.Item().Text($"Generated: {summary.GeneratedAt:g}");
                         column.Item().Text($"Total planned budget: {summary.TotalPlannedBudget.ToCurrencyString()}");
                         column.Item().Text($"Total actual spend: {summary.TotalActualSpend.ToCurrencyString()}");
                         column.Item().Text($"Cost per person: {summary.CostPerPerson.ToCurrencyString()}");
