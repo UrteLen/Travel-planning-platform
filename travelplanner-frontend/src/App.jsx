@@ -2,6 +2,10 @@ import { useState, useRef } from 'react';
 import './App.css';
 import ActivitiesPanel from './components/ActivitiesPanel';
 import CalendarPanel from './components/CalendarPanel';
+import HistoryPanel from './components/HistoryPanel';
+import SummaryPanel from './components/SummaryPanel';
+import BudgetAlerts from './components/BudgetAlerts';
+import { readError } from './apiError';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
@@ -61,17 +65,19 @@ export default function App() {
       fetchTripDetails(tripData.id, tripData.inviteCode);
     }
   }
-
-  async function handleApiError(res) {
-    let msg = 'Request failed';
-    try {
-      const text = await res.text();
-      if (text) msg = text;
-    } catch {
-      // ignore
+    async function handleVersionRestored() {
+      if (!currentTrip?.id) return;
+      try {
+        const res = await fetch(`${API_BASE}/trip/${currentTrip.id}`);
+        if (!res.ok) throw new Error(await readError(res));
+        const freshTrip = await res.json();
+        setCategoryLimits({ Food: 100, Transport: 100, Activities: 100, Accommodation: 100 });
+        handleTripLoaded(freshTrip);
+      } catch (err) {
+        setErrorMessage('Failed to reload the restored trip: ' + err.message);
+      }
+      setActiveTab('overview');
     }
-    throw new Error(msg);
-  }
 
   async function handleCreateTrip(e) {
     e.preventDefault();
@@ -100,7 +106,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...createForm, name, destination, organizerName })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       handleTripLoaded(data, organizerName);
       setCreateForm({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
@@ -134,7 +140,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteCode, participantName })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       handleTripLoaded(data, participantName);
       setJoinForm({ inviteCode: '', participantName: '' });
@@ -154,11 +160,11 @@ export default function App() {
     try {
       const results = await Promise.allSettled([
         fetch(`${API_BASE}/budget/summary?tripCode=${tripCode}`).then(async res => {
-          if (!res.ok) await handleApiError(res);
+          if (!res.ok) throw new Error(await readError(res));
           return res.json();
         }),
         fetch(`${API_BASE}/plan/${tripId}`).then(async res => {
-          if (!res.ok) await handleApiError(res);
+          if (!res.ok) throw new Error(await readError(res));
           return res.json();
         })
       ]);
@@ -179,62 +185,73 @@ export default function App() {
     }
   }
 
-  async function handleAddExpense(e) {
-    e.preventDefault();
-    if (!currentTrip?.inviteCode || !currentTrip?.id) {
-      setErrorMessage('No active trip selected.');
-      return;
-    }
+ async function handleAddExpense(e) {
+  e.preventDefault();
+  if (!currentTrip?.inviteCode || !currentTrip?.id) {
+    setErrorMessage('No active trip selected.');
+    return;
+  }
 
-    const amountNum = parseFloat(expenseForm.amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setErrorMessage('Please enter a valid expense amount greater than 0.');
-      return;
-    }
-    if (!expenseForm.participantId) {
-      setErrorMessage('Please select who paid for the expense.');
-      return;
-    }
+  const amountText = String(expenseForm.amount).trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(amountText) || parseFloat(amountText) <= 0) {
+    setErrorMessage('Enter an amount greater than 0 with at most 2 decimal places.');
+    return;
+  }
+  const amountNum = parseFloat(amountText);
 
-    setLoading(true);
-    setErrorMessage('');
+  if (!expenseForm.participantId) {
+    setErrorMessage('Please select who paid for the expense.');
+    return;
+  }
 
-    try {
-      const res = await fetch(`${API_BASE}/budget/expense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tripCode: currentTrip.inviteCode,
-          amount: amountNum,
-          category: expenseForm.category,
-          participantId: expenseForm.participantId
-        })
-      });
-      if (!res.ok) await handleApiError(res);
+  // limits are only known once the summary has loaded
+  const limitMissing = Boolean(summary?.results) &&
+    !summary.results.some(r => r.category === expenseForm.category);
 
-      const newExpense = {
+  setLoading(true);
+  setErrorMessage('');
+
+  try {
+    const res = await fetch(`${API_BASE}/budget/expense`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tripCode: currentTrip.inviteCode,
         amount: amountNum,
         category: expenseForm.category,
-        date: new Date().toISOString(),
-        participant: currentTrip.participants[expenseForm.participantId] || { name: 'Unknown' }
-      };
+        participantId: expenseForm.participantId
+      })
+    });
+    if (!res.ok) throw new Error(await readError(res));
 
-      setCurrentTrip(prev => ({
-        ...prev,
-        budget: {
-          ...prev.budget,
-          expenses: [...(prev.budget?.expenses || []), newExpense]
-        }
-      }));
+    const newExpense = {
+      amount: amountNum,
+      category: expenseForm.category,
+      date: new Date().toISOString(),
+      participant: currentTrip.participants[expenseForm.participantId] || { name: 'Unknown' }
+    };
 
-      setExpenseForm(prev => ({ ...prev, amount: '' }));
-      await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
-    } catch (err) {
-      setErrorMessage(err.message);
-    } finally {
-      setLoading(false);
+    setCurrentTrip(prev => ({
+      ...prev,
+      budget: {
+        ...prev.budget,
+        expenses: [...(prev.budget?.expenses || []), newExpense]
+      }
+    }));
+
+    setExpenseForm(prev => ({ ...prev, amount: '' }));
+    await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
+
+    
+    if (limitMissing) {
+      setErrorMessage(`Warning: the expense was saved, but ${expenseForm.category} has no limit set, so it will not show in the budget status. Set a limit on the Categories tab.`);
     }
+  } catch (err) {
+    setErrorMessage(err.message);
+  } finally {
+    setLoading(false);
   }
+}
 
   async function handleSetLimits(e) {
     e.preventDefault();
@@ -261,7 +278,7 @@ export default function App() {
           categoryLimits: sanitizedLimits
         })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
 
       await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
     } catch (err) {
@@ -292,7 +309,7 @@ export default function App() {
           participantName
         })
       });
-      if (!res.ok) await handleApiError(res);
+      if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       handleTripLoaded(data);
       setNewParticipantName('');
@@ -303,59 +320,65 @@ export default function App() {
     }
   }
 
-  async function handleGeneratePlan(e) {
-    e.preventDefault();
-    if (!currentTrip?.id || !currentTrip?.inviteCode) return;
+async function handleGeneratePlan(e) {
+  e.preventDefault();
+  if (!currentTrip?.id || !currentTrip?.inviteCode) return;
 
-    const lat = parseFloat(planForm.startLat);
-    const lon = parseFloat(planForm.startLon);
-    const speed = parseFloat(planForm.speedKmh);
+  const lat = parseFloat(planForm.startLat);
+  const lon = parseFloat(planForm.startLon);
+  const speed = parseFloat(planForm.speedKmh);
 
-    if (isNaN(lat) || lat < -90 || lat > 90) {
-      setErrorMessage('Latitude must be between -90 and 90.');
-      return;
-    }
-    if (isNaN(lon) || lon < -180 || lon > 180) {
-      setErrorMessage('Longitude must be between -180 and 180.');
-      return;
-    }
-    if (isNaN(speed) || speed <= 0) {
-      setErrorMessage('Speed must be greater than 0 km/h.');
-      return;
-    }
-    if (!planForm.startTime) {
-      setErrorMessage('Start time is required.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage('');
-
-    try {
-      const res = await fetch(`${API_BASE}/plan/${currentTrip.id}/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startLatitude: lat,
-          startLongitude: lon,
-          startTime: planForm.startTime,
-          speedKmh: speed,
-          changedBy: planForm.changedBy
-        })
-      });
-      if (!res.ok) await handleApiError(res);
-      const data = await res.json();
-      setPlanResult(data);
-      await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
-    } catch (err) {
-      setErrorMessage(err.message);
-    } finally {
-      setLoading(false);
-    }
+  if (isNaN(lat) || lat < -90 || lat > 90) {
+    setErrorMessage('Latitude must be between -90 and 90.');
+    return;
+  }
+  if (isNaN(lon) || lon < -180 || lon > 180) {
+    setErrorMessage('Longitude must be between -180 and 180.');
+    return;
+  }
+  if (isNaN(speed) || speed <= 0) {
+    setErrorMessage('Speed must be greater than 0 km/h.');
+    return;
+  }
+  if (!planForm.startTime) {
+    setErrorMessage('Start time is required.');
+    return;
   }
 
+  setLoading(true);
+  setErrorMessage('');
+
+  try {
+    const res = await fetch(`${API_BASE}/plan/${currentTrip.id}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startLatitude: lat,
+        startLongitude: lon,
+        startTime: planForm.startTime,
+        speedKmh: speed,
+        changedBy: Object.values(currentTrip.participants || {}).find(p => p.id === activeParticipantId)?.name || planForm.changedBy
+      })
+    });
+    if (!res.ok) throw new Error(await readError(res));
+    const data = await res.json();
+    setPlanResult(data);
+    await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
+
+    if (data.length === 0) {
+      setErrorMessage('Warning: no visits could be scheduled. Add activities first, or check their opening hours and the start time.');
+    }
+  } catch (err) {
+    setErrorMessage(err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+  const participantsList = Object.values(currentTrip?.participants || {});
+  const expensesList = currentTrip?.budget?.expenses || [];
   const categoryResults = summary?.results || null;
-  const totalSpent = summary?.results ? summary.results.reduce((acc, r) => acc + r.actualSpent, 0) : 0;
+  const totalSpent = summary?.totalSpent ?? 0;
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
   const costPerPerson = summary?.costPerPerson ?? 0;
 
@@ -365,8 +388,11 @@ export default function App() {
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
         
-        {errorMessage && <div className="error-banner">{errorMessage}</div>}
-
+           {errorMessage && (
+     <div className={`error-banner ${errorMessage.startsWith('Warning') ? 'is-warning' : ''}`} role="alert">
+       {errorMessage}
+     </div>
+   )}
         <div className="card">
           <h2>Create New Trip</h2>
           <form onSubmit={handleCreateTrip} className="form-grid">
@@ -391,8 +417,7 @@ export default function App() {
     );
   }
 
-  const participantsList = Object.values(currentTrip.participants || {});
-  const expensesList = currentTrip?.budget?.expenses || [];
+
 
   return (
     <div className="container">
@@ -407,10 +432,10 @@ export default function App() {
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
       <div className="tabs">
-        {['overview', 'participants', 'categories', 'expenses', 'itinerary', 'calendar', 'settlements'].map(tab => (
+        {['overview', 'participants', 'categories', 'expenses', 'itinerary', 'calendar', 'settlements', 'history', 'summary'].map(tab => (
           <button 
             key={tab} 
-            onClick={() => setActiveTab(tab)}
+            onClick={() => { setActiveTab(tab); setErrorMessage(''); }}
             className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
           >
             {tab}
@@ -422,7 +447,8 @@ export default function App() {
         {activeTab === 'overview' && (
           <div>
             <h2>Trip Overview</h2>
-            {summary ? (
+            <BudgetAlerts results={categoryResults} expenses={expensesList} />
+              {summary ? (
               <div className="stats-grid">
                 <div className="stat-box">
                   <h3>Total Planned Budget</h3>
@@ -509,9 +535,10 @@ export default function App() {
         )}
 
         {activeTab === 'expenses' && (
-          <div>
-            <h2>Record an Expense</h2>
-            <form onSubmit={handleAddExpense} className="form-grid" style={{ marginBottom: '30px' }}>
+  <div>
+    <h2>Record an Expense</h2>
+    <BudgetAlerts results={categoryResults} expenses={expensesList} />
+    <form onSubmit={handleAddExpense} className="form-grid" style={{ marginBottom: '30px' }}>
               <input 
                 type="number" 
                 step="0.01" 
@@ -637,13 +664,31 @@ export default function App() {
             />
           </div>
         )}
+        {activeTab === 'history' && (
+          <HistoryPanel
+            apiBase={API_BASE}
+            tripId={currentTrip.id}
+            changedBy={participantsList.find(p => p.id === activeParticipantId)?.name || 'Organizer'}
+            onRestored={handleVersionRestored}
+          />
+        )}
+
+        {activeTab === 'summary' && (
+          <SummaryPanel
+            apiBase={API_BASE}
+            trip={currentTrip}
+            summary={summary}
+            plan={planResult}
+            expenses={expensesList}
+          />
+        )}
 
         {activeTab === 'settlements' && (
           <div>
             <h2>Balances & Settlements</h2>
             <div className="card" style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', textAlign: 'center', padding: '40px 20px' }}>
               <h3>Settlements Feature Coming Soon</h3>
-              <p className="text-muted">Debt calculation and settlement engine is currently being integrated by your team.</p>
+              <p className="text-muted">Debt calculation and settlement engine is currently being integrated.</p>
             </div>
           </div>
         )}
