@@ -29,6 +29,16 @@ namespace TravelPlanner.Controllers
             return Ok(ToTripResponse(trip));
         }
 
+        [HttpGet("{tripId:guid}")]
+        public IActionResult Get(Guid tripId)
+        {
+            var trip = _tripService.FindTripById(tripId);
+            if (trip is null)
+                return NotFound(new { error = "Trip not found" });
+
+            return Ok(ToTripResponse(trip));
+        }
+
         [HttpPost("join")]
         public IActionResult Join(JoinTripRequest request)
         {

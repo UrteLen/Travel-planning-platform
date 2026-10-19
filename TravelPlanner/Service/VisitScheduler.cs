@@ -33,13 +33,14 @@ namespace TravelPlanner.Service
             var todayOpening = reference.Date + opening;
             var todayClosing = reference.Date.AddDays(1) + closing;
 
-            if (reference < todayClosing){
-
+            if (reference < todayClosing)
+            {
                 if (reference.TimeOfDay < closing)
                 {
                     return (reference.Date.AddDays(-1) + opening, reference.Date + closing);
                 }
-            }       
+            }
+
             return (todayOpening, todayClosing);
         }
     }
