@@ -4,6 +4,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using TravelPlanner.Reports;
+using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service
 {
@@ -24,14 +25,14 @@ namespace TravelPlanner.Service
                     page.Content().Column(column =>
                     {
                         column.Item().Text($"Generated: {summary.GeneratedAt:g}");
-                        column.Item().Text($"Total planned budget: {summary.TotalPlannedBudget:C}");
-                        column.Item().Text($"Total actual spend: {summary.TotalActualSpend:C}");
-                        column.Item().Text($"Cost per person: {summary.CostPerPerson:C}");
+                        column.Item().Text($"Total planned budget: {summary.TotalPlannedBudget.ToCurrencyString()}");
+                        column.Item().Text($"Total actual spend: {summary.TotalActualSpend.ToCurrencyString()}");
+                        column.Item().Text($"Cost per person: {summary.CostPerPerson.ToCurrencyString()}");
 
                         column.Item().PaddingTop(10).Text("Budget by category").Bold();
                         foreach (var category in summary.CategoryBreakdown)
                         {
-                            column.Item().Text($"{category.Category}: {category.ActualSpent:C} / {category.Limit:C} — {category.Status}");
+                            column.Item().Text($"{category.Category}: {category.ActualSpent.ToCurrencyString()} / {category.Limit.ToCurrencyString()} — {category.Status}");
                         }
 
                         column.Item().PaddingTop(10).Text("Itinerary").Bold();
