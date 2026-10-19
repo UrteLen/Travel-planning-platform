@@ -1,15 +1,15 @@
+
 using System.Collections.Generic;
 using System.Linq;
 using TravelPlanner.Extensions;
 using TravelPlanner.Enums;
-using TravelPlanner.Models.Budgets;
+using TravelPlanner.Models;
 using TravelPlanner.Responses;
 
 namespace TravelPlanner.Service
 {
     public class BudgetService
     {
-
         public decimal GetTotalSpent(Budget budget, Category category)
         {
             return budget.Expenses
@@ -26,24 +26,24 @@ namespace TravelPlanner.Service
             if (actual > limit)
             {
                 status = BudgetStatus.Exceeded;
+            }
+            else if (actual >= limit * 0.9m)
+            {
+                status = BudgetStatus.Warning;
+            }
+            else
+            {
+                status = BudgetStatus.Ok;
+            }
 
-            }  else if (actual >= limit * 0.9m)
-                {
-                    status = BudgetStatus.Warning;
-
-                } else
-                  {
-                    status = BudgetStatus.Ok;
-                  }
-            return  new CategoryBudgetResult(category, limit, actual, status);
-
+            return new CategoryBudgetResult(category, limit, actual, status);
         }
 
         public List<CategoryBudgetResult> CheckAllCategories(Budget budget)
         {
-             return budget.CategoryLimits.Keys
-                    .Select(category => CheckCategory(budget, category))
-                    .ToList();
+            return budget.CategoryLimits.Keys
+                .Select(category => CheckCategory(budget, category))
+                .ToList();
         }
 
         public decimal GetTotalActualSpend(Budget budget)

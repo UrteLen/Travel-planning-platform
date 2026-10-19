@@ -1,30 +1,30 @@
+
 using System.Collections.Generic;
 using System.Linq;
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Geography;
-using TravelPlanner.Models.Planning;
-using TravelPlanner.Models.Trips;
-using TravelPlanner.Models.History;
+using TravelPlanner.Models;
 using TravelPlanner.Responses;
 
 namespace TravelPlanner.Service
 {
     public class PlanService
     {
-        private readonly DayPlanningService _dayPlanning;
+        private readonly DayPlanningService _dayPlanningService;
         private readonly TripVersionService _versionService;
 
-        public PlanService(DayPlanningService dayPlanning, TripVersionService versionService)
+        public PlanService(
+            DayPlanningService dayPlanningService,
+            TripVersionService versionService)
         {
-            _dayPlanning = dayPlanning;
+            _dayPlanningService = dayPlanningService;
             _versionService = versionService;
         }
 
         public List<PlannedVisit> GeneratePlan(Trip trip, GeoLocation start, DateTime startTime, double speedKmh, string changedBy)
         {
             var places = trip.Activities.Select(ToPlace).ToList();
-            trip.Plan = _dayPlanning.DayPlan(places, start, startTime, speedKmh);
+            trip.Plan = _dayPlanningService.DayPlan(places, start, startTime, speedKmh);
             _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
+
             return trip.Plan;
         }
 

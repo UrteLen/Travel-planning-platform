@@ -1,6 +1,5 @@
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Trips;
 using TravelPlanner.Enums;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 
@@ -24,6 +23,7 @@ public class ActivityVotingService
 
         var activity = trip.Activities
             .FirstOrDefault(x => x.Id == activityId);
+
         if (activity == null)
         {
             throw new KeyNotFoundException("Activity not found in the trip.");
@@ -51,6 +51,7 @@ public class ActivityVotingService
 
         var activity = trip.Activities
             .FirstOrDefault(x => x.Id == activityId);
+
         if (activity == null)
         {
             throw new KeyNotFoundException("Activity not found in the trip.");
@@ -66,7 +67,11 @@ public class ActivityVotingService
             .ThenByDescending(activity => GetUpvoteCount(activity))
             .ToList();
     }
-    public List<TripActivity> SelectActivitiesForPlan(IEnumerable<TripActivity> activities, decimal availableBudget, TimeSpan availableTime)
+
+    public List<TripActivity> SelectActivitiesForPlan(
+        IEnumerable<TripActivity> activities,
+        decimal? availableBudget,
+        TimeSpan availableTime)
     {
         var prioritizedActivities = PrioritizeByVotes(activities);
         var selectedActivities = new List<TripActivity>();
@@ -76,17 +81,23 @@ public class ActivityVotingService
 
         foreach (var activity in prioritizedActivities)
         {
-            bool fitsBudget = usedBudget + activity.EstimatedCost <= availableBudget;
-            bool fitsTime = usedTime + activity.Duration <= availableTime;
+            bool fitsBudget = !availableBudget.HasValue ||
+                              activity.EstimatedCost <= availableBudget.Value - usedBudget;
+            bool fitsTime = activity.Duration <= availableTime - usedTime;
 
             if (fitsBudget && fitsTime)
             {
                 selectedActivities.Add(activity);
 
-                usedBudget += activity.EstimatedCost;
+                if (availableBudget.HasValue)
+                {
+                    usedBudget += activity.EstimatedCost;
+                }
+
                 usedTime += activity.Duration;
             }
         }
+
         return selectedActivities;
     }
 }

@@ -1,6 +1,4 @@
-using TravelPlanner.Models.Geography;
-
-namespace TravelPlanner.Models.Planning
+namespace TravelPlanner.Models
 {
     public class Place
     {
@@ -10,7 +8,7 @@ namespace TravelPlanner.Models.Planning
         public TimeSpan OpeningTime { get; set; }
         public TimeSpan ClosingTime { get; set; }
 
-        public Place Clone () => new()
+        public Place Clone() => new()
         {
             Name = Name,
             Location = Location,

@@ -1,17 +1,14 @@
 using System.Text.Json;
 using TravelPlanner.Imports;
 using TravelPlanner.Enums;
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Geography;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 
 public class ActivityImportService
 {
-    public List<ActivityImportData> LoadFromJson(string filePath)
+    public List<ActivityImportData> LoadFromJson(Stream stream)
     {
-        using FileStream stream = File.OpenRead(filePath);
-
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -27,9 +24,34 @@ public class ActivityImportService
 
         foreach (var dto in importedActivities)
         {
-            var category = Enum.Parse<Category>(dto.Category, ignoreCase: true);
-            var location = new GeoLocation(dto.Latitude, dto.Longitude);
+            if (dto is null)
+            {
+                throw new ArgumentException("Activity cannot be null.");
+            }
+
+            if (!Enum.TryParse<Category>(dto.Category, true, out var category)
+                || !Enum.IsDefined(category))
+            {
+                throw new ArgumentException("Invalid category.");
+            }
+
+            if (!dto.Latitude.HasValue || !dto.Longitude.HasValue)
+            {
+                throw new ArgumentException(
+                    "Latitude and longitude are required.");
+            }
+
+            var location = new GeoLocation(
+                dto.Latitude.Value,
+                dto.Longitude.Value);
+
+            if (!double.IsFinite(dto.DurationHours) || dto.DurationHours <= 0)
+            {
+                throw new ArgumentException("Invalid duration.");
+            }
+
             var duration = TimeSpan.FromHours(dto.DurationHours);
+
             var activity = new TripActivity(
                 dto.Name,
                 category,
@@ -46,9 +68,9 @@ public class ActivityImportService
         return activities;
     }
 
-    public List<TripActivity> LoadActivitiesFromJson(string filePath)
+    public List<TripActivity> LoadActivitiesFromJson(Stream stream)
     {
-        var importedActivities = LoadFromJson(filePath);
+        var importedActivities = LoadFromJson(stream);
 
         return ConvertToActivities(importedActivities);
     }

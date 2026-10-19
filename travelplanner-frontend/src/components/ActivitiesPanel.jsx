@@ -73,6 +73,9 @@ export default function ActivitiesPanel({
   const [loading, setLoading] = useState(true);
   const [busyVote, setBusyVote] = useState('');
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const importInput = useRef(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(() => initialForm(defaultLatitude, defaultLongitude));
   const [sort, setSort] = useState('priority');
@@ -80,6 +83,7 @@ export default function ActivitiesPanel({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [budget, setBudget] = useState('50');
+  const [unlimitedBudget, setUnlimitedBudget] = useState(false);
   const [hours, setHours] = useState('5');
   const [selection, setSelection] = useState(null);
   const [selecting, setSelecting] = useState(false);
@@ -164,6 +168,33 @@ export default function ActivitiesPanel({
     finally { setAdding(false); }
   }
 
+  async function importActivities(event) {
+    event.preventDefault();
+    setError(''); setMessage('');
+    if (!importFile || !tripId || importing) return;
+    if (importFile.size === 0) {
+      setError('Choose a JSON file that is not empty.'); return;
+    }
+    const body = new FormData();
+    body.append('file', importFile);
+    setImporting(true);
+    try {
+      const imported = await api(`/trips/${tripId}/activities/import`, {
+        method: 'POST', body
+      });
+      setSelection(null);
+      setCategory('All');
+      setImportFile(null);
+      if (importInput.current) importInput.current.value = '';
+      setMessage(imported.length === 0
+        ? 'The file contained no activities.'
+        : `${imported.length} ${imported.length === 1 ? 'activity imported' : 'activities imported'} into this trip.`);
+      await loadActivities();
+    } catch (err) {
+      setError(err.message === 'Failed to fetch' ? 'Cannot connect to the server. Check that the backend is running.' : err.message);
+    } finally { setImporting(false); }
+  }
+
   async function castVote(activityId, voteType) {
     if (!participantId) { setError('Choose a participant before voting.'); return; }
     setBusyVote(activityId); setError(''); setMessage('');
@@ -184,12 +215,15 @@ export default function ActivitiesPanel({
     setError(''); setMessage('');
     const budgetValue = Number(budget);
     const hoursValue = Number(hours);
-    if (budget.trim() === '' || hours.trim() === '' || !Number.isFinite(budgetValue) || budgetValue < 0 || !Number.isFinite(hoursValue) || hoursValue < 0) {
-      setError('Enter a non-negative budget and number of hours.'); return;
+    if ((!unlimitedBudget && (budget.trim() === '' || !Number.isFinite(budgetValue) || budgetValue < 0)) ||
+        hours.trim() === '' || !Number.isFinite(hoursValue) || hoursValue < 0) {
+      setError('Enter non-negative hours and a budget, or choose No budget limit.'); return;
     }
     setSelecting(true);
     try {
-      const result = await api(`/trips/${tripId}/activities/selected?budget=${encodeURIComponent(budgetValue)}&hours=${encodeURIComponent(hoursValue)}`);
+      const query = new URLSearchParams({ hours: String(hoursValue) });
+      if (!unlimitedBudget) query.set('budget', String(budgetValue));
+      const result = await api(`/trips/${tripId}/activities/selected?${query}`);
       setSelection(result);
     } catch (err) { setError(err.message); }
     finally { setSelecting(false); }
@@ -280,6 +314,24 @@ export default function ActivitiesPanel({
         </form>
       )}
 
+      <details className="ap-import-section">
+        <summary>Import Activities from JSON</summary>
+      <form onSubmit={importActivities} className="ap-import-form" aria-label="Import activities">
+        <label htmlFor="activity-import-file">Import Activities from JSON</label>
+        <p id="activity-import-help" className="text-muted">
+          Choose a JSON file containing a list of activities. Imported activities are added to this trip.
+        </p>
+        <div className="ap-import-controls">
+          <input id="activity-import-file" ref={importInput} type="file" accept=".json,application/json"
+                 aria-describedby="activity-import-help" disabled={importing} required
+                 onChange={event => setImportFile(event.target.files?.[0] ?? null)} />
+          <button type="submit" className="btn-secondary" disabled={importing || !importFile || !tripId}>
+            {importing ? 'Importing...' : 'Import Activities'}
+          </button>
+        </div>
+      </form>
+      </details>
+
       <h3>Suggested Activities ({activities.length})</h3>
       <div className="ap-filter-row">
         <select aria-label="Filter by category" value={category} onChange={e => setCategory(e.target.value)}>
@@ -359,16 +411,30 @@ export default function ActivitiesPanel({
         <h3>Choose Activities by Budget and Time</h3>
 
         <form onSubmit={selectActivities} className="form-grid ap-selection-form">
-          <label htmlFor="selection-budget">Budget (€)</label>
-          <input
-              id="selection-budget"
-              type="number"
-              min="0"
-              step="0.01"
-              value={budget}
-              onChange={e => setBudget(e.target.value)}
-              required
-          />
+          <label className="ap-checkbox">
+            <input type="checkbox" checked={unlimitedBudget}
+                   onChange={event => {
+                     setUnlimitedBudget(event.target.checked);
+                     setSelection(null);
+                   }} />
+            No budget limit
+          </label>
+          {unlimitedBudget ? (
+            <p className="text-muted" role="status">Only available time limits this selection.</p>
+          ) : (
+            <>
+              <label htmlFor="selection-budget">Maximum Budget (€)</label>
+              <input
+                  id="selection-budget"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={budget}
+                  onChange={e => setBudget(e.target.value)}
+                  required
+              />
+            </>
+          )}
 
           <label htmlFor="selection-hours">Available Hours</label>
           <input

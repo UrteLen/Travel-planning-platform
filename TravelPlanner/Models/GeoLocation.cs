@@ -1,4 +1,4 @@
-namespace TravelPlanner.Models.Geography;
+namespace TravelPlanner.Models;
 
 public readonly struct GeoLocation
 {
@@ -7,16 +7,6 @@ public readonly struct GeoLocation
 
     public GeoLocation(double latitude, double longitude)
     {
-        if (latitude < -90 || latitude > 90)
-        {
-            throw new ArgumentOutOfRangeException(nameof(latitude));
-        }
-
-        if (longitude < -180 || longitude > 180)
-        {
-            throw new ArgumentOutOfRangeException(nameof(longitude));
-        }
-
         if (!double.IsFinite(latitude) || latitude < -90 || latitude > 90)
         {
             throw new ArgumentOutOfRangeException(

@@ -1,6 +1,6 @@
 using TravelPlanner.Enums;
 
-namespace TravelPlanner.Models.Trips
+namespace TravelPlanner.Models
 {
     public class Participant
     {

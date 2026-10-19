@@ -1,5 +1,5 @@
-using TravelPlanner.Models.Trips;
 using TravelPlanner.Enums;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {

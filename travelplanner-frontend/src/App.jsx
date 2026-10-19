@@ -23,13 +23,13 @@ export default function App() {
 
   const [createForm, setCreateForm] = useState({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
   const [joinForm, setJoinForm] = useState({ inviteCode: '', participantName: '' });
-  
+
   const [summary, setSummary] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ amount: '', category: 'Food', participantId: '' });
-  
+
   const [categoryLimits, setCategoryLimits] = useState({ Food: 100, Transport: 100, Activities: 100, Accommodation: 100 });
   const [newParticipantName, setNewParticipantName] = useState('');
-  
+
   const [planForm, setPlanForm] = useState({ startLat: 54.6872, startLon: 25.2797, startTime: new Date().toISOString().slice(0, 16), speedKmh: 50, changedBy: 'Organizer' });
   const [planResult, setPlanResult] = useState([]);
 
@@ -53,7 +53,7 @@ export default function App() {
     setCurrentTrip(tripData);
     setCalendarFocus('');
     setErrorMessage('');
-    
+
     if (tripData?.budget?.categoryLimits) {
       setCategoryLimits(prev => ({
         ...prev,
@@ -242,7 +242,7 @@ export default function App() {
     setExpenseForm(prev => ({ ...prev, amount: '' }));
     await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
 
-    
+
     if (limitMissing) {
       setErrorMessage(`Warning: the expense was saved, but ${expenseForm.category} has no limit set, so it will not show in the budget status. Set a limit on the Categories tab.`);
     }
@@ -387,7 +387,7 @@ async function handleGeneratePlan(e) {
       <div className="container">
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
-        
+
            {errorMessage && (
      <div className={`error-banner ${errorMessage.startsWith('Warning') ? 'is-warning' : ''}`} role="alert">
        {errorMessage}
@@ -432,9 +432,9 @@ async function handleGeneratePlan(e) {
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
       <div className="tabs">
-        {['overview', 'participants', 'categories', 'expenses', 'itinerary', 'calendar', 'settlements', 'history', 'summary'].map(tab => (
-          <button 
-            key={tab} 
+        {['overview', 'participants', 'categories', 'expenses', 'activities', 'itinerary', 'calendar', 'settlements', 'history', 'summary'].map(tab => (
+          <button
+            key={tab}
             onClick={() => { setActiveTab(tab); setErrorMessage(''); }}
             className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
           >
@@ -492,10 +492,10 @@ async function handleGeneratePlan(e) {
               {Object.keys(categoryLimits).map(cat => (
                 <div key={cat} className="input-group">
                   <label>{cat} Limit (€):</label>
-                  <input 
-                    type="number" 
-                    value={categoryLimits[cat]} 
-                    onChange={e => setCategoryLimits({...categoryLimits, [cat]: e.target.value})} 
+                  <input
+                    type="number"
+                    value={categoryLimits[cat]}
+                    onChange={e => setCategoryLimits({...categoryLimits, [cat]: e.target.value})}
                   />
                 </div>
               ))}
@@ -539,13 +539,13 @@ async function handleGeneratePlan(e) {
     <h2>Record an Expense</h2>
     <BudgetAlerts results={categoryResults} expenses={expensesList} />
     <form onSubmit={handleAddExpense} className="form-grid" style={{ marginBottom: '30px' }}>
-              <input 
-                type="number" 
-                step="0.01" 
-                placeholder="Amount (€)" 
-                value={expenseForm.amount} 
-                onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})} 
-                required 
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Amount (€)"
+                value={expenseForm.amount}
+                onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})}
+                required
               />
               <select value={expenseForm.category} onChange={e => setExpenseForm({...expenseForm, category: e.target.value})}>
                 <option value="Food">Food</option>
@@ -606,9 +606,9 @@ async function handleGeneratePlan(e) {
           </div>
         )}
 
-        {activeTab === 'itinerary' && (
+        {activeTab === 'activities' && (
           <div>
-            <h2>Itinerary & Plan Generator</h2>
+            <h2>Activities & Voting</h2>
             <ActivitiesPanel
                 tripId={currentTrip.id}
                 participants={participantsList}
@@ -624,10 +624,13 @@ async function handleGeneratePlan(e) {
                   setActiveTab('calendar');
                 }}
             />
-            <details style={{ marginTop: '30px' }}>
-              <summary style={{ cursor: 'pointer', fontWeight: '600', marginBottom: '15px' }}>
-                Generate Optimized Route
-              </summary>
+          </div>
+        )}
+
+        {activeTab === 'itinerary' && (
+          <div>
+            <h2>Itinerary</h2>
+            <h3>Generate Optimized Route</h3>
             <form onSubmit={handleGeneratePlan} className="form-grid" style={{ marginBottom: '20px' }}>
               <input type="number" step="any" placeholder="Start Latitude" value={planForm.startLat} onChange={e => setPlanForm({...planForm, startLat: e.target.value})} required />
               <input type="number" step="any" placeholder="Start Longitude" value={planForm.startLon} onChange={e => setPlanForm({...planForm, startLon: e.target.value})} required />
@@ -636,18 +639,18 @@ async function handleGeneratePlan(e) {
               <button type="submit" className="btn-primary" style={{ gridColumn: '1 / -1' }} disabled={loading}>{loading ? 'Generating...' : 'Generate Optimized Plan'}</button>
             </form>
 
-            <h3>Scheduled Visits</h3>
+            <h3>Generated Itinerary</h3>
             {planResult.length > 0 ? (
               <ul className="list">
                 {planResult.map((visit, idx) => (
                   <li key={idx} className="list-item">
-                    <strong>{visit.name}</strong> 
+                    <strong>{visit.name}</strong>
                     <span>{new Date(visit.arrivalTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} – {new Date(visit.departureTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-muted">No itinerary planned yet. Add activities and generate a plan!</p>}
-            </details>
+            ) : <p className="text-muted">No itinerary planned yet. Add activities in the Activities tab, then generate a plan here.</p>}
+            <button type="button" className="btn-secondary" onClick={() => setActiveTab('activities')}>Open Activities</button>
           </div>
         )}
 
