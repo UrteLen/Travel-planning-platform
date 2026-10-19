@@ -41,7 +41,7 @@ namespace TravelPlanner.Service
 
         public static List<PlannedVisitResponse> ToResponseList(List<PlannedVisit> plan)
         {
-            return plan.Select(v => new PlannedVisitResponse(v.Place.Name, v.ArrivalTime, v.DepartureTime)).ToList();
+            return plan.Order().Select(v => new PlannedVisitResponse(v.Place.Name, v.ArrivalTime, v.DepartureTime)).ToList();
         }
 
         private static Place ToPlace(TripActivity activity)
