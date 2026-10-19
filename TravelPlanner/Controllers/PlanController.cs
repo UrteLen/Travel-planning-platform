@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Models.Geography;
 using TravelPlanner.Requests;
@@ -13,7 +14,10 @@ namespace TravelPlanner.Controllers
         private readonly PlanService _planService;
         private readonly TripVersionService _versionService;
 
-        public PlanController(TripService tripService, PlanService planService, TripVersionService versionService)
+        public PlanController(
+            TripService tripService,
+            PlanService planService,
+            TripVersionService versionService)
         {
             _tripService = tripService;
             _planService = planService;
@@ -25,10 +29,14 @@ namespace TravelPlanner.Controllers
         {
             var trip = _tripService.FindTripById(tripId);
             if (trip is null)
+            {
                 return NotFound(new { error = "Trip not found" });
+            }
 
             if (request.SpeedKmh <= 0)
+            {
                 return BadRequest(new { error = "Speed must be positive" });
+            }
 
             GeoLocation start;
             try
@@ -40,7 +48,12 @@ namespace TravelPlanner.Controllers
                 return BadRequest(new { error = "Invalid start coordinates" });
             }
 
-            var plan = _planService.GeneratePlan(trip, start, request.StartTime, request.SpeedKmh, request.ChangedBy);
+            var plan = _planService.GeneratePlan(
+                trip,
+                start,
+                request.StartTime,
+                request.SpeedKmh,
+                request.ChangedBy);
 
             return Ok(PlanService.ToResponseList(plan));
         }
@@ -50,7 +63,9 @@ namespace TravelPlanner.Controllers
         {
             var trip = _tripService.FindTripById(tripId);
             if (trip is null)
+            {
                 return NotFound(new { error = "Trip not found" });
+            }
 
             return Ok(PlanService.ToResponseList(trip.Plan));
         }
@@ -59,7 +74,9 @@ namespace TravelPlanner.Controllers
         public IActionResult History(Guid tripId)
         {
             if (_tripService.FindTripById(tripId) is null)
+            {
                 return NotFound(new { error = "Trip not found" });
+            }
 
             var history = _versionService.GetHistory(tripId).Select(v => new
             {
@@ -73,11 +90,16 @@ namespace TravelPlanner.Controllers
         }
 
         [HttpPost("{tripId}/restore/{versionNumber}")]
-        public IActionResult Restore(Guid tripId, int versionNumber, [FromQuery] string changedBy = "unknown")
+        public IActionResult Restore(
+            Guid tripId,
+            int versionNumber,
+            [FromQuery] string changedBy = "unknown")
         {
             var trip = _tripService.FindTripById(tripId);
             if (trip is null)
+            {
                 return NotFound(new { error = "Trip not found" });
+            }
 
             try
             {

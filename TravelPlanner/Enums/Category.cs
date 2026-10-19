@@ -1,3 +1,4 @@
+
 namespace  TravelPlanner.Enums
 {
     public enum Category
