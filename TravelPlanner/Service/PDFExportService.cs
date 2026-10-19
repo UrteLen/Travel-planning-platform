@@ -27,7 +27,6 @@ namespace TravelPlanner.Service
                         column.Item().Text($"Total planned budget: {summary.TotalPlannedBudget.ToCurrencyString()}");
                         column.Item().Text($"Total actual spend: {summary.TotalActualSpend.ToCurrencyString()}");
                         column.Item().Text($"Cost per person: {summary.CostPerPerson.ToCurrencyString()}");
-                        column.Item().Text($"Cost per person: {summary.CostPerPerson:C}");
 
                         column.Item().PaddingTop(10).Text("Budget by category").Bold();
                         foreach (var category in summary.CategoryBreakdown)
