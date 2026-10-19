@@ -2,10 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TravelPlanner.Models.Budgets;
-using TravelPlanner.Models.Planning;
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.History;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {

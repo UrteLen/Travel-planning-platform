@@ -1,7 +1,6 @@
 using TravelPlanner.Extensions;
 using System.Linq;
-using TravelPlanner.Models.Trips;
-using TravelPlanner.Models.Budgets;
+using TravelPlanner.Models;
 
 namespace TravelPlanner.Service
 {

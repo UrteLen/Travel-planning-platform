@@ -1,11 +1,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using TravelPlanner.Models.Activities;
-using TravelPlanner.Models.Geography;
-using TravelPlanner.Models.Planning;
-using TravelPlanner.Models.Trips;
-using TravelPlanner.Models.History;
+using TravelPlanner.Models;
 using TravelPlanner.Responses;
 
 namespace TravelPlanner.Service

@@ -1,6 +1,6 @@
 
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Models.Geography;
+using TravelPlanner.Models;
 using TravelPlanner.Requests;
 using TravelPlanner.Service;
 
