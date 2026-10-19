@@ -377,7 +377,7 @@ async function handleGeneratePlan(e) {
   const participantsList = Object.values(currentTrip?.participants || {});
   const expensesList = currentTrip?.budget?.expenses || [];
   const categoryResults = summary?.results || null;
-  const totalSpent = expensesList.reduce((acc, exp) => acc + Number(exp.amount || 0), 0);
+  const totalSpent = summary?.totalSpent ?? 0;
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
   const costPerPerson = summary?.costPerPerson ?? 0;
 

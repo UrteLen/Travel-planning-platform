@@ -45,7 +45,7 @@ export default function SummaryPanel({ apiBase, trip, summary, plan, expenses })
 
   const results = summary?.results || [];
   const totalPlanned = results.reduce((sum, r) => sum + r.limit, 0);
-  const totalSpent = results.reduce((sum, r) => sum + r.actualSpent, 0);
+  const totalSpent = summary?.totalSpent ?? 0;
   const warnings = [];
   if (summary && results.length === 0) warnings.push('No category limits are set, so the budget part of the PDF will be empty.');
   if (plan.length === 0) warnings.push('No itinerary has been generated, so the PDF itinerary will be empty.');
