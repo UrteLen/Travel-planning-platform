@@ -3,6 +3,7 @@ using TravelPlanner.Models;
 using TravelPlanner.Service;
 using TravelPlanner.Requests;
 using TravelPlanner.Responses;
+using TravelPlanner.Enums;
 
 namespace TravelPlanner.Controllers
 {
@@ -42,7 +43,7 @@ namespace TravelPlanner.Controllers
         [HttpPost("join")]
         public IActionResult Join(JoinTripRequest request)
         {
-            var trip = _tripService.JoinTrip(request.InviteCode, request.ParticipantName);
+            var trip = _tripService.JoinTrip(request.InviteCode, request.ParticipantName, role: UserRole.Participant);
 
             if (trip is null)
             {
@@ -59,7 +60,6 @@ namespace TravelPlanner.Controllers
                 entry => new ParticipantResponse(
                     entry.Value.Id,
                     entry.Value.Name,
-                    entry.Value.Email,
                     entry.Value.Role));
 
             var activities = trip.Activities.Select(activity =>
@@ -85,7 +85,6 @@ namespace TravelPlanner.Controllers
                         new ParticipantResponse(
                             expense.Participant.Id,
                             expense.Participant.Name,
-                            expense.Participant.Email,
                             expense.Participant.Role)))
                 .ToList();
 

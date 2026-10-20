@@ -475,7 +475,6 @@ async function handleGeneratePlan(e) {
               {participantsList.map(p => (
                 <li key={p.id} className="list-item">
                   <span><strong>{p.name}</strong> ({p.role})</span>
-                  <span className="text-muted">{p.email || 'No email provided'}</span>
                 </li>
               ))}
             </ul>
