@@ -1,4 +1,5 @@
 namespace TravelPlanner.Models;
+
 public class Trip
 {
     public Guid Id { get; set; } = Guid.NewGuid();

@@ -4,24 +4,23 @@ using TravelPlanner.Models;
 using TravelPlanner.Responses;
 using TravelPlanner.Reports;
 
-namespace TravelPlanner.Service
+namespace TravelPlanner.Service;
+
+public class SummaryService
 {
-    public class SummaryService
+    private readonly BudgetService _budgetService;
+    public SummaryService(BudgetService budgetService)
     {
-        private readonly BudgetService _budgetService;
-        public SummaryService(BudgetService budgetService)
-        {
-            this._budgetService = budgetService;
-        }
+        _budgetService = budgetService;
+    }
 
-        public TripSummary GenerateSummary(Budget budget, List<PlannedVisit> itinerary, int numberOfParticipants = 1)
-        {
-            decimal totalPlanned = _budgetService.GetTotalPlannedBudget(budget);
-            decimal totalActual = _budgetService.GetTotalActualSpend(budget);
-            decimal costPerPerson = _budgetService.GetCostPerPerson(budget, numberOfParticipants);
-            List<CategoryBudgetResult> breakdown = _budgetService.CheckAllCategories(budget);
+    public TripSummary GenerateSummary(Budget budget, List<PlannedVisit> itinerary, int numberOfParticipants = 1)
+    {
+        decimal totalPlanned = _budgetService.GetTotalPlannedBudget(budget);
+        decimal totalActual = _budgetService.GetTotalActualSpend(budget);
+        decimal costPerPerson = _budgetService.GetCostPerPerson(budget, numberOfParticipants);
+        List<CategoryBudgetResult> breakdown = _budgetService.CheckAllCategories(budget);
 
-            return new TripSummary(totalPlanned, totalActual, costPerPerson, breakdown, itinerary, DateTime.Now);
-        }
+        return new TripSummary(totalPlanned, totalActual, costPerPerson, breakdown, itinerary, DateTime.Now);
     }
 }

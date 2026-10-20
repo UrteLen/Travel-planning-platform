@@ -1,11 +1,10 @@
 
-namespace  TravelPlanner.Enums
+namespace TravelPlanner.Enums;
+
+public enum Category
 {
-    public enum Category
-    {
-        Transport,
-        Accommodation,
-        Food,
-        Activities
-    }
+    Transport,
+    Accommodation,
+    Food,
+    Activities
 }

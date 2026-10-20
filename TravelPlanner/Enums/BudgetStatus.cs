@@ -1,10 +1,9 @@
 
-namespace TravelPlanner.Enums
+namespace TravelPlanner.Enums;
+
+public enum BudgetStatus
 {
-    public enum BudgetStatus
-    {
-        Ok,
-        Warning,
-        Exceeded
-    }
+    Ok,
+    Warning,
+    Exceeded
 }

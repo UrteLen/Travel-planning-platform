@@ -6,60 +6,59 @@ using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
 
-namespace TravelPlanner.Service
+namespace TravelPlanner.Service;
+
+public class BudgetService
 {
-    public class BudgetService
+    public decimal GetTotalSpent(Budget budget, Category category)
     {
-        public decimal GetTotalSpent(Budget budget, Category category)
+        return budget.Expenses
+            .Where(e => e.Category == category)
+            .Sum(e => e.Amount);
+    }
+
+    public CategoryBudgetResult CheckCategory(Budget budget, Category category)
+    {
+        decimal actual = GetTotalSpent(budget, category);
+        decimal limit = budget.CategoryLimits.GetValueOrDefault(category, 0m);
+
+        BudgetStatus status;
+        if (actual > limit)
         {
-            return budget.Expenses
-                .Where(e => e.Category == category)
-                .Sum(e => e.Amount);
+            status = BudgetStatus.Exceeded;
+        }
+        else if (actual >= limit * 0.9m)
+        {
+            status = BudgetStatus.Warning;
+        }
+        else
+        {
+            status = BudgetStatus.Ok;
         }
 
-        public CategoryBudgetResult CheckCategory(Budget budget, Category category)
-        {
-            decimal actual = GetTotalSpent(budget, category);
-            decimal limit = budget.CategoryLimits.GetValueOrDefault(category, 0m);
+        return new CategoryBudgetResult(category, limit, actual, status);
+    }
 
-            BudgetStatus status;
-            if (actual > limit)
-            {
-                status = BudgetStatus.Exceeded;
-            }
-            else if (actual >= limit * 0.9m)
-            {
-                status = BudgetStatus.Warning;
-            }
-            else
-            {
-                status = BudgetStatus.Ok;
-            }
+    public List<CategoryBudgetResult> CheckAllCategories(Budget budget)
+    {
+        return budget.CategoryLimits.Keys
+            .Select(category => CheckCategory(budget, category))
+            .ToList();
+    }
 
-            return new CategoryBudgetResult(category, limit, actual, status);
-        }
+    public decimal GetTotalActualSpend(Budget budget)
+    {
+        return budget.Expenses
+            .Sum(e => e.Amount);
+    }
 
-        public List<CategoryBudgetResult> CheckAllCategories(Budget budget)
-        {
-            return budget.CategoryLimits.Keys
-                .Select(category => CheckCategory(budget, category))
-                .ToList();
-        }
+    public decimal GetTotalPlannedBudget(Budget budget)
+    {
+        return budget.CategoryLimits.Values.Sum();
+    }
 
-        public decimal GetTotalActualSpend(Budget budget)
-        {
-            return budget.Expenses
-                .Sum(e => e.Amount);
-        }
-
-        public decimal GetTotalPlannedBudget(Budget budget)
-        {
-            return budget.CategoryLimits.Values.Sum();
-        }
-
-        public decimal GetCostPerPerson(Budget budget, int numberOfParticipants)
-        {
-            return GetTotalActualSpend(budget).ToShare(numberOfParticipants);
-        }
+    public decimal GetCostPerPerson(Budget budget, int numberOfParticipants)
+    {
+        return GetTotalActualSpend(budget).ToShare(numberOfParticipants);
     }
 }
