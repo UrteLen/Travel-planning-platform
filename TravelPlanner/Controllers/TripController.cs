@@ -20,6 +20,21 @@ public class TripController : ControllerBase
     [HttpPost("create")]
     public IActionResult Create(CreateTripRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Destination) || string.IsNullOrWhiteSpace(request.OrganizerName))
+        {
+            return BadRequest(new { error = "Name, destination and organizer name are required" });
+        }
+
+        if (request.EndDate < request.StartDate)
+        {
+            return BadRequest(new { error = "End date cannot be earlier than start date" });
+        }
+
+        if (request.StartDate.Date < DateTime.Today)
+        {
+            return BadRequest(new { error = "Start date cannot be in the past" });
+        }
+
         var trip = _tripService.CreateTrip(
             request.Name,
             request.Destination,
