@@ -1,12 +1,11 @@
-namespace TravelPlanner.Models
-{
-    public record TripVersion(
-        int VersionNumber,
-        DateTime Timestamp,
-        string ChangedBy,
-        Budget BudgetSnapshot,
-        List<PlannedVisit> PlanSnapshot,
-        List<TripActivity> ActivitiesSnapshot,
-        int? RestoredFromVersion
-    );
-}
+namespace TravelPlanner.Models;
+
+public record TripVersion(
+    int VersionNumber,
+    DateTime Timestamp,
+    string ChangedBy,
+    Budget BudgetSnapshot,
+    List<PlannedVisit> PlanSnapshot,
+    List<TripActivity> ActivitiesSnapshot,
+    int? RestoredFromVersion
+);
