@@ -42,7 +42,7 @@ function formatDuration(value) {
 }
 
 const initialForm = (latitude, longitude) => ({
-  name: '', category: 'Activities', durationHours: '2', estimatedCost: '0',
+  name: '', category: 'Activities', durationHours: '', estimatedCost: '',
   latitude: String(latitude ?? 54.6872), longitude: String(longitude ?? 25.2797),
   optional: true, openingTime: '', closingTime: ''
 });
@@ -275,10 +275,10 @@ export default function ActivitiesPanel({
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
             {CATEGORIES.map(name => <option value={name} key={name}>{name}</option>)}
           </select>
-          <input aria-label="Duration in hours" type="number" min="0.25" max="500" step="0.25"
+          <input aria-label="Duration in hours" type="number" min="0.25" max="500" step="any"
                  placeholder="Duration (hours)" value={form.durationHours}
                  onChange={e => setForm(f => ({ ...f, durationHours: e.target.value }))} required />
-          <input aria-label="Estimated cost in euros" type="number" min="0" step="0.01"
+          <input aria-label="Estimated cost in euros" type="number" min="0" step="0.any"
                  placeholder="Estimated Cost (€)" value={form.estimatedCost}
                  onChange={e => setForm(f => ({ ...f, estimatedCost: e.target.value }))} required />
           <label className="ap-checkbox">
@@ -428,7 +428,7 @@ export default function ActivitiesPanel({
                   id="selection-budget"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="any"
                   value={budget}
                   onChange={e => setBudget(e.target.value)}
                   required
@@ -441,7 +441,7 @@ export default function ActivitiesPanel({
               id="selection-hours"
               type="number"
               min="0"
-              step="0.5"
+              step="any"
               value={hours}
               onChange={e => setHours(e.target.value)}
               required

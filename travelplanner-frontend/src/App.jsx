@@ -28,13 +28,15 @@ export default function App() {
   const [summary, setSummary] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ amount: '', category: 'Food', participantId: '' });
 
-  const [categoryLimits, setCategoryLimits] = useState({ Food: 100, Transport: 100, Activities: 100, Accommodation: 100 });
+  const [categoryLimits, setCategoryLimits] = useState({ Food: '', Transport: '', Activities: '', Accommodation: '' });
   const [newParticipantName, setNewParticipantName] = useState('');
 
-  const [planForm, setPlanForm] = useState({ startLat: 54.6872, startLon: 25.2797, startTime: new Date().toISOString().slice(0, 16), speedKmh: 50, changedBy: 'Organizer' });
+  const [planForm, setPlanForm] = useState({ startLat: '', startLon: '', startTime: new Date().toISOString().slice(0, 16), speedKmh: '', changedBy: 'Organizer' });
   const [planResult, setPlanResult] = useState([]);
 
   const requestIdRef = useRef(0);
+
+  const today = new Date().toLocaleDateString('en-CA');
 
   function handleTripLoaded(tripData, preferredParticipantName = '') {
     const people = Object.values(tripData?.participants || []);
@@ -72,7 +74,7 @@ export default function App() {
         const res = await fetch(`${API_BASE}/trip/${currentTrip.id}`);
         if (!res.ok) throw new Error(await readError(res));
         const freshTrip = await res.json();
-        setCategoryLimits({ Food: 100, Transport: 100, Activities: 100, Accommodation: 100 });
+        setCategoryLimits({ Food: '', Transport: '', Activities: '', Accommodation: '' });
         handleTripLoaded(freshTrip);
       } catch (err) {
         setErrorMessage('Failed to reload the restored trip: ' + err.message);
@@ -399,8 +401,8 @@ async function handleGeneratePlan(e) {
           <form onSubmit={handleCreateTrip} className="form-grid">
             <input placeholder="Trip Name" value={createForm.name} onChange={e => setCreateForm({...createForm, name: e.target.value})} required />
             <input placeholder="Destination" value={createForm.destination} onChange={e => setCreateForm({...createForm, destination: e.target.value})} required />
-            <input type="date" value={createForm.startDate} onChange={e => setCreateForm({...createForm, startDate: e.target.value})} required />
-            <input type="date" value={createForm.endDate} onChange={e => setCreateForm({...createForm, endDate: e.target.value})} required />
+            <input type="date" min={today} max="2100-12-31" value={createForm.startDate} onChange={e => setCreateForm({...createForm, startDate: e.target.value})} required />
+            <input type="date" min={createForm.startDate || today} max="2100-12-31" value={createForm.endDate} onChange={e => setCreateForm({...createForm, endDate: e.target.value})} required />
             <input placeholder="Your Name (Organizer)" value={createForm.organizerName} onChange={e => setCreateForm({...createForm, organizerName: e.target.value})} required />
             <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Trip'}</button>
           </form>
@@ -494,6 +496,8 @@ async function handleGeneratePlan(e) {
                   <label>{cat} Limit (€):</label>
                   <input
                     type="number"
+                    min="0"
+                    placeholder="e.g. 100"
                     value={categoryLimits[cat]}
                     onChange={e => setCategoryLimits({...categoryLimits, [cat]: e.target.value})}
                   />
@@ -541,7 +545,8 @@ async function handleGeneratePlan(e) {
     <form onSubmit={handleAddExpense} className="form-grid" style={{ marginBottom: '30px' }}>
               <input
                 type="number"
-                step="0.01"
+                min="0.01"
+                step="any"
                 placeholder="Amount (€)"
                 value={expenseForm.amount}
                 onChange={e => setExpenseForm({...expenseForm, amount: e.target.value})}
