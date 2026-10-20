@@ -129,7 +129,7 @@ namespace TravelPlanner.Controllers
             }
 
             int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
-            var summary = _summaryService.GenerateSummary(trip.Budget, trip.Plan, participantCount);
+            var summary = _summaryService.GenerateSummary(trip.Budget, trip.Plan, numberOfParticipants: participantCount);
             var pdfBytes = _pdfExportService.ExportToPdf(summary);
 
             return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
