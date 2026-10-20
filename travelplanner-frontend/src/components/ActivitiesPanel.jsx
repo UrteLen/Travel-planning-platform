@@ -278,7 +278,7 @@ export default function ActivitiesPanel({
           <input aria-label="Duration in hours" type="number" min="0.25" max="500" step="any"
                  placeholder="Duration (hours)" value={form.durationHours}
                  onChange={e => setForm(f => ({ ...f, durationHours: e.target.value }))} required />
-          <input aria-label="Estimated cost in euros" type="number" min="0" step="0.any"
+          <input aria-label="Estimated cost in euros" type="number" min="0" step="any"
                  placeholder="Estimated Cost (€)" value={form.estimatedCost}
                  onChange={e => setForm(f => ({ ...f, estimatedCost: e.target.value }))} required />
           <label className="ap-checkbox">

@@ -621,8 +621,8 @@ async function handleGeneratePlan(e) {
                 onParticipantChange={setActiveParticipantId}
                 tripStartDate={currentTrip.startDate}
                 tripEndDate={currentTrip.endDate}
-                defaultLatitude={planForm.startLat}
-                defaultLongitude={planForm.startLon}
+                defaultLatitude={planForm.startLat || undefined}
+                defaultLongitude={planForm.startLon || undefined}
                 onScheduleChange={() => setScheduleRevision(value => value + 1)}
                 onOpenCalendar={date => {
                   setCalendarFocus(date || currentTrip.startDate.slice(0, 10));
@@ -640,7 +640,7 @@ async function handleGeneratePlan(e) {
               <input type="number" step="any" placeholder="Start Latitude" value={planForm.startLat} onChange={e => setPlanForm({...planForm, startLat: e.target.value})} required />
               <input type="number" step="any" placeholder="Start Longitude" value={planForm.startLon} onChange={e => setPlanForm({...planForm, startLon: e.target.value})} required />
               <input type="datetime-local" value={planForm.startTime} onChange={e => setPlanForm({...planForm, startTime: e.target.value})} required />
-              <input type="number" placeholder="Speed (km/h)" value={planForm.speedKmh} onChange={e => setPlanForm({...planForm, speedKmh: e.target.value})} required />
+              <input type="number" min="1" placeholder="Speed (km/h)" value={planForm.speedKmh} onChange={e => setPlanForm({...planForm, speedKmh: e.target.value})} required />
               <button type="submit" className="btn-primary" style={{ gridColumn: '1 / -1' }} disabled={loading}>{loading ? 'Generating...' : 'Generate Optimized Plan'}</button>
             </form>
 
