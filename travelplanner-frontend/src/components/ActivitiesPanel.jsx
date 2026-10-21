@@ -42,6 +42,18 @@ function formatDuration(value) {
   return h && min ? `${h}h ${min}m` : h ? `${h}h` : `${min}m`;
 }
 
+function formatScheduleRange(startTime, endTime) {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+  const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+  const startText = start.toLocaleString('en-GB', { ...dateOptions, ...timeOptions });
+  const endText = start.toDateString() === end.toDateString()
+    ? end.toLocaleTimeString('en-GB', timeOptions)
+    : end.toLocaleString('en-GB', { ...dateOptions, ...timeOptions });
+  return `${startText} – ${endText}`;
+}
+
 const initialForm = (latitude, longitude) => ({
   name: '', category: 'Activities', durationHours: '', estimatedCost: '',
   latitude: String(latitude ?? 54.6872), longitude: String(longitude ?? 25.2797),
@@ -270,9 +282,7 @@ export default function ActivitiesPanel({
       <div className="ap-scheduled-status">
         {entries.map(entry => (
           <div key={entry.id} className="ap-scheduled-entry">
-            <span>Scheduled: {new Date(entry.startTime).toLocaleString('en-GB', {
-              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
-            })} – {String(entry.endTime).slice(11, 16)}</span>
+            <span>Scheduled: {formatScheduleRange(entry.startTime, entry.endTime)}</span>
             {onOpenCalendar && <button type="button" className="btn-secondary ap-calendar-shortcut"
               onClick={() => onOpenCalendar(entry.startTime.slice(0, 10))}>View in Calendar</button>}
           </div>
@@ -474,7 +484,7 @@ export default function ActivitiesPanel({
       )}
 
         <h3>Suggest a Set of Activities</h3>
-        <p className="text-muted">Activities with more votes are selected first, while keeping the total cost and duration within your limits.</p>
+        <p className="text-muted">Activities with higher voting priority are selected first, while keeping the total cost and duration within your limits.</p>
 
         <form onSubmit={selectActivities} className="form-grid ap-selection-form">
           <label className="ap-checkbox">
