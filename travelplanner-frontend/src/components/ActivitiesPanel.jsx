@@ -408,7 +408,8 @@ export default function ActivitiesPanel({
         </ul>
       )}
 
-        <h3>Choose Activities by Budget and Time</h3>
+        <h3>Suggest a Set of Activities</h3>
+        <p className="text-muted">Activities with more votes are selected first, while keeping the total cost and duration within your limits.</p>
 
         <form onSubmit={selectActivities} className="form-grid ap-selection-form">
           <label className="ap-checkbox">
@@ -452,12 +453,12 @@ export default function ActivitiesPanel({
               className="btn-primary"
               disabled={selecting || activities.length === 0}
           >
-            {selecting ? 'Selecting...' : 'Find Activities'}
+            {selecting ? 'Selecting...' : 'Suggest Activities'}
           </button>
         </form>
       {selection && (
         <div className="ap-selection-results">
-          <h3>Selected Activities ({selection.length})</h3>
+          <h3>Suggested Selection ({selection.length})</h3>
           <p className="text-muted">Total: {formatMoney(selectedCost)} · {selectedHours.toFixed(1)} hours</p>
           {selection.length === 0 ? <p className="text-muted">No activities fit these limits.</p> : (
             <ul className="list">
