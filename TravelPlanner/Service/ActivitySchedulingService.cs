@@ -81,7 +81,7 @@ public class ActivitySchedulingService
         ScheduledActivity? ignoredActivity = null)
     {
         var otherActivities = trip.ScheduledActivities
-            .Where(x => x != ignoredActivity)
+            .Where(activity => activity != ignoredActivity)
             .ToList();
 
         if (speedKmh <= 0 || !double.IsFinite(speedKmh))
@@ -115,13 +115,13 @@ public class ActivitySchedulingService
         }
 
         var previousActivity = otherActivities
-            .Where(x => x.StartTime < scheduledActivity.StartTime)
-            .OrderByDescending(x => x.StartTime)
+            .Where(activity => activity.StartTime < scheduledActivity.StartTime)
+            .OrderByDescending(activity => activity.StartTime)
             .FirstOrDefault();
 
         var nextActivity = otherActivities
-            .Where(x => x.StartTime > scheduledActivity.StartTime)
-            .OrderBy(x => x.StartTime)
+            .Where(activity => activity.StartTime > scheduledActivity.StartTime)
+            .OrderBy(activity => activity.StartTime)
             .FirstOrDefault();
 
         if (previousActivity != null)
@@ -165,7 +165,7 @@ public class ActivitySchedulingService
     public bool RemoveScheduledActivity(Trip trip, Guid scheduledActivityId)
     {
         var scheduledActivity = trip.ScheduledActivities
-            .FirstOrDefault(x => x.Id == scheduledActivityId);
+            .FirstOrDefault(activity => activity.Id == scheduledActivityId);
 
         if (scheduledActivity == null)
         {
@@ -182,7 +182,7 @@ public class ActivitySchedulingService
         double speedKmh)
     {
         var scheduledActivity = trip.ScheduledActivities
-            .FirstOrDefault(x => x.Id == scheduledActivityId);
+            .FirstOrDefault(activity => activity.Id == scheduledActivityId);
 
         if (scheduledActivity == null)
         {

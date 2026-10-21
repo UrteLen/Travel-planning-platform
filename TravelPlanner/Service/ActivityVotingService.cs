@@ -22,7 +22,7 @@ public class ActivityVotingService
         }
 
         var activity = trip.Activities
-            .FirstOrDefault(x => x.Id == activityId);
+            .FirstOrDefault(candidate => candidate.Id == activityId);
 
         if (activity == null)
         {
@@ -50,7 +50,7 @@ public class ActivityVotingService
         }
 
         var activity = trip.Activities
-            .FirstOrDefault(x => x.Id == activityId);
+            .FirstOrDefault(candidate => candidate.Id == activityId);
 
         if (activity == null)
         {
