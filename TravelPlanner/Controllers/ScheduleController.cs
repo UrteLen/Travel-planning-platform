@@ -40,7 +40,7 @@ public class ScheduleController : ControllerBase
         }
 
         var activity = trip.Activities
-            .FirstOrDefault(x => x.Id == request.ActivityId);
+            .FirstOrDefault(candidate => candidate.Id == request.ActivityId);
 
         if (activity == null)
         {

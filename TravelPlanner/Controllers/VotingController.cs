@@ -74,7 +74,7 @@ public class VotingController : ControllerBase
         }
 
         var activity = trip.Activities
-            .FirstOrDefault(x => x.Id == activityId);
+            .FirstOrDefault(candidate => candidate.Id == activityId);
 
         if (activity == null)
         {
