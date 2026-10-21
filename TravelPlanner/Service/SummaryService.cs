@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
 using TravelPlanner.Reports;

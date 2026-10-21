@@ -1,6 +1,3 @@
-
-using System.Collections.Generic;
-using System.Linq;
 using TravelPlanner.Extensions;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
