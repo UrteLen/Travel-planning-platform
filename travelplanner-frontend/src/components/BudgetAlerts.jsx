@@ -7,7 +7,7 @@ export default function BudgetAlerts({ results, expenses = [] }) {
     notices.push({
       key: 'no-limits',
       level: 'warning',
-      text: "No category limits are saved yet, so planned vs actual spend and limit alerts can't be calculated. Enter limits and press Save Limits."
+      text: "No category limits are saved yet, so planned vs actual spend and limit alerts can't be calculated. Open Budget Limits, enter limits and press Save Limits."
     });
   } else {
     const limited = new Set(results.map(r => r.category));

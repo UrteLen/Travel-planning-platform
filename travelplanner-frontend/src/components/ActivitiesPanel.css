@@ -75,3 +75,15 @@ html {
 .ap-shell .ap-import-section { margin-bottom: 24px; }
 .ap-shell .ap-import-section > summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
 .ap-shell .ap-import-section .ap-import-form { margin-bottom: 0; }
+
+.ap-shell .ap-filter-field { display: flex; flex: 1 1 145px; flex-direction: column; gap: 6px; text-align: left; }
+.ap-shell .ap-filter-field select { flex: none; width: 100%; }
+
+.ap-shell .ap-selection-row { flex-wrap: wrap; gap: 12px; }
+
+.ap-shell .ap-scheduled-status { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; color: #166534; font-size: 14px; }
+.ap-shell .ap-scheduled-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.ap-shell .ap-calendar-shortcut { padding: 6px 10px; font-size: 13px; white-space: nowrap; }
+
+.ap-shell .ap-activity-details { text-align: left; }
+.ap-shell .ap-selection-row > div { text-align: left; }

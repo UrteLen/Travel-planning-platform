@@ -100,16 +100,17 @@ export default function SummaryPanel({ apiBase, trip, summary, plan, expenses })
       )}
 
       <div className="summary-section">
-        <h3>Timetable</h3>
+        <h3>Generated Route</h3>
+        <p className="text-muted">The PDF includes this route. Your manual schedule is in Calendar.</p>
         {plan.length > 0 ? (
           <ul className="list">
             {plan.map((v, i) => (
               <li key={i} className="list-item">
                 <strong>{v.name}</strong>
                 <span>
-                  {new Date(v.arrivalTime).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(v.arrivalTime).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })}
                   {' – '}
-                  {new Date(v.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(v.departureTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </span>
               </li>
             ))}
