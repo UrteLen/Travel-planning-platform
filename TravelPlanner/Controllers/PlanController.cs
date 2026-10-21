@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Models;
 using TravelPlanner.Requests;

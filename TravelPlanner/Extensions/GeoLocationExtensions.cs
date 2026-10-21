@@ -1,4 +1,3 @@
-using System;
 using TravelPlanner.Models;
 
 namespace TravelPlanner.Extensions;
