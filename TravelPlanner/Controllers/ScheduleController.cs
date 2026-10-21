@@ -75,7 +75,7 @@ public class ScheduleController : ControllerBase
     [HttpGet]
     public IActionResult GetDailySchedule(
         Guid tripId,
-        [FromQuery] DateTime date)
+        [FromQuery] DateTime? date)
     {
         var trip = _tripService.FindTripById(tripId);
 
@@ -84,9 +84,15 @@ public class ScheduleController : ControllerBase
             return NotFound();
         }
 
-        var dailySchedule = _activitySchedulingService.GetDailySchedule(trip.ScheduledActivities, date);
+        var scheduledActivities = trip.ScheduledActivities;
 
-        return Ok(dailySchedule);
+        if (date.HasValue)
+        {
+            scheduledActivities = _activitySchedulingService.GetDailySchedule(
+                scheduledActivities, date.Value);
+        }
+
+        return Ok(scheduledActivities);
     }
 
     [HttpDelete("{scheduledActivityId}")]
