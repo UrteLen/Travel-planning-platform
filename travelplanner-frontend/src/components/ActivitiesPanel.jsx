@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './ActivitiesPanel.css';
+import HelpTip from './HelpTip';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
@@ -65,6 +66,7 @@ export default function ActivitiesPanel({
   onScheduleChange, onOpenCalendar
 }) {
   const [activities, setActivities] = useState([]);
+  const [scheduledActivities, setScheduledActivities] = useState([]);
   const [voteResults, setVoteResults] = useState({ key: '', byActivity: {} });
   const currentVoteKey = `${tripId || ''}:${participantId || ''}`;
   const counts = voteResults.key === currentVoteKey ? voteResults.byActivity : {};
@@ -88,6 +90,7 @@ export default function ActivitiesPanel({
   const [selection, setSelection] = useState(null);
   const [selecting, setSelecting] = useState(false);
   const [scheduleId, setScheduleId] = useState('');
+  const [scheduleSource, setScheduleSource] = useState('list');
   const [scheduleTime, setScheduleTime] = useState(() => initialScheduleTime(tripStartDate, tripEndDate));
   const [speed, setSpeed] = useState('40');
   const [scheduling, setScheduling] = useState(false);
@@ -95,9 +98,12 @@ export default function ActivitiesPanel({
   const loadActivities = useCallback(async (signal) => {
     const loadId = ++latestLoadId.current;
     try {
-      const list = tripId
-        ? await api(`/trips/${tripId}/activities/prioritized`, { signal })
-        : [];
+      const [list, schedule] = tripId
+        ? await Promise.all([
+            api(`/trips/${tripId}/activities/prioritized`, { signal }),
+            api(`/trips/${tripId}/scheduled-activities`, { signal })
+          ])
+        : [[], []];
       const resultPairs = await Promise.all(list.map(async activity => {
         const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : '';
         const data = await api(`/trips/${tripId}/activities/${activity.id}/votes/results${query}`, { signal });
@@ -105,6 +111,7 @@ export default function ActivitiesPanel({
       }));
       if (!signal?.aborted && loadId === latestLoadId.current) {
         setActivities(list);
+        setScheduledActivities(schedule);
         setVoteResults({ key: currentVoteKey, byActivity: Object.fromEntries(resultPairs) });
         setError('');
       }
@@ -140,7 +147,7 @@ export default function ActivitiesPanel({
     const longitude = Number(form.longitude);
     const cost = Number(form.estimatedCost);
     const duration = Number(form.durationHours);
-    if (!form.name.trim() || !Number.isFinite(duration) || duration <= 0 || !Number.isFinite(cost) || cost < 0 ||
+    if (!form.latitude.trim() || !form.longitude.trim() || !form.name.trim() || !Number.isFinite(duration) || duration <= 0 || !Number.isFinite(cost) || cost < 0 ||
         !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
         !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       setError('Check the name, duration, cost and coordinates.'); return;
@@ -236,10 +243,11 @@ export default function ActivitiesPanel({
     }
     setScheduling(true); setError(''); setMessage('');
     try {
-      await api(`/trips/${tripId}/scheduled-activities`, {
+      const scheduled = await api(`/trips/${tripId}/scheduled-activities`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activityId, startTime: scheduleTime, speedKmh: Number(speed) })
       });
+      setScheduledActivities(entries => [...entries, scheduled]);
       setMessage('Activity scheduled successfully.');
       setScheduleId('');
       onScheduleChange?.();
@@ -249,6 +257,51 @@ export default function ActivitiesPanel({
 
   const selectedCost = selection?.reduce((sum, activity) => sum + activity.estimatedCost, 0) ?? 0;
   const selectedHours = selection?.reduce((sum, activity) => sum + durationInHours(activity.duration), 0) ?? 0;
+
+  function schedulesFor(activityId) {
+    return scheduledActivities.filter(entry => entry.activity?.id === activityId)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }
+
+  function renderScheduleStatus(activityId) {
+    const entries = schedulesFor(activityId);
+    if (entries.length === 0) return null;
+    return (
+      <div className="ap-scheduled-status">
+        {entries.map(entry => (
+          <div key={entry.id} className="ap-scheduled-entry">
+            <span>Scheduled: {new Date(entry.startTime).toLocaleString('en-GB', {
+              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+            })} – {String(entry.endTime).slice(11, 16)}</span>
+            {onOpenCalendar && <button type="button" className="btn-secondary ap-calendar-shortcut"
+              onClick={() => onOpenCalendar(entry.startTime.slice(0, 10))}>View in Calendar</button>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderScheduleForm(activityId) {
+    const alreadyScheduled = schedulesFor(activityId).some(entry => entry.startTime.slice(0, 16) === scheduleTime);
+    return (
+                  <form onSubmit={event => scheduleActivity(event, activityId)} className="form-grid ap-schedule-form">
+                    <label>Date and Time
+                      <input type="datetime-local" value={scheduleTime}
+                             min={tripStartDate ? `${tripStartDate.slice(0, 10)}T00:00` : undefined}
+                             max={tripEndDate ? `${tripEndDate.slice(0, 10)}T23:59` : undefined}
+                             onChange={e => setScheduleTime(e.target.value)} required />
+                    </label>
+                    <label>Travel Speed (km/h)
+                      <input type="number" min="1" step="1" value={speed}
+                             onChange={e => setSpeed(e.target.value)} required />
+                    </label>
+                    {alreadyScheduled && <p className="text-muted" role="status">This activity is already scheduled at this time. Choose another time or edit it in Calendar.</p>}
+                    <button className="btn-primary" type="submit" disabled={scheduling || alreadyScheduled}>
+                      {scheduling ? 'Scheduling...' : 'Add to Calendar'}
+                    </button>
+                  </form>
+    );
+  }
 
   return (
       <section className="ap-shell" aria-label="Activities and voting">
@@ -269,39 +322,58 @@ export default function ActivitiesPanel({
 
       {createOpen && (
         <form onSubmit={addActivity} className="form-grid ap-activity-form">
-          <input aria-label="Activity name" autoFocus placeholder="Activity Name" value={form.name}
+          <label className="form-field">Activity Name
+          <input aria-label="Activity name" autoFocus value={form.name}
                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={120} required />
+          </label>
+          <label className="form-field">Category
           <select aria-label="Activity category" value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
             {CATEGORIES.map(name => <option value={name} key={name}>{name}</option>)}
           </select>
+          </label>
+          <div className="related-fields">
+          <label className="form-field">Duration (hours)
           <input aria-label="Duration in hours" type="number" min="0.25" max="500" step="any"
-                 placeholder="Duration (hours)" value={form.durationHours}
+                 value={form.durationHours}
                  onChange={e => setForm(f => ({ ...f, durationHours: e.target.value }))} required />
+          </label>
+          <label className="form-field">Estimated Cost (€)
           <input aria-label="Estimated cost in euros" type="number" min="0" step="any"
-                 placeholder="Estimated Cost (€)" value={form.estimatedCost}
+                 value={form.estimatedCost}
                  onChange={e => setForm(f => ({ ...f, estimatedCost: e.target.value }))} required />
+          </label>
+          </div>
+          <div className="field-with-help">
           <label className="ap-checkbox">
             <input type="checkbox" checked={form.optional}
                    onChange={e => setForm(f => ({ ...f, optional: e.target.checked }))} />
             Optional Activity
           </label>
+          <HelpTip label="About optional activities">This is a planning label. Marking an activity as required does not guarantee its inclusion in automatic selections or routes.</HelpTip>
+          </div>
+          <div className="field-with-help">Location
+            <HelpTip label="About activity location">Used to calculate travel time. Default coordinates are in Vilnius; change them for other locations.</HelpTip>
+          </div>
+          <div className="related-fields">
+          <label className="form-field">Latitude
+            <input type="number" min="-90" max="90" step="any" value={form.latitude}
+                   onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} required />
+          </label>
+          <label className="form-field">Longitude
+            <input type="number" min="-180" max="180" step="any" value={form.longitude}
+                   onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} required />
+          </label>
+          </div>
           <details className="ap-advanced">
-            <summary>Location and Opening Hours</summary>
+            <summary>Opening Hours (optional)</summary>
+            <p className="text-muted">Enter both times, or leave both empty if there are no opening-hour restrictions.</p>
             <div className="form-grid ap-advanced-fields">
-              <label>Latitude
-                <input type="number" min="-90" max="90" step="any" value={form.latitude}
-                       onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} required />
-              </label>
-              <label>Longitude
-                <input type="number" min="-180" max="180" step="any" value={form.longitude}
-                       onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} required />
-              </label>
-              <label>Opening Time (optional)
+              <label>Opening Time
                 <input type="time" value={form.openingTime}
                        onChange={e => setForm(f => ({ ...f, openingTime: e.target.value }))} />
               </label>
-              <label>Closing Time (optional)
+              <label>Closing Time
                 <input type="time" value={form.closingTime}
                        onChange={e => setForm(f => ({ ...f, closingTime: e.target.value }))} />
               </label>
@@ -334,21 +406,27 @@ export default function ActivitiesPanel({
 
       <h3>Suggested Activities ({activities.length})</h3>
       <div className="ap-filter-row">
+        <label className="ap-filter-field">Category
         <select aria-label="Filter by category" value={category} onChange={e => setCategory(e.target.value)}>
           <option value="All">All Categories</option>
           {CATEGORIES.map(name => <option value={name} key={name}>{name}</option>)}
         </select>
+        </label>
+        <label className="ap-filter-field">Sort By
         <select aria-label="Sort activities" value={sort} onChange={e => setSort(e.target.value)}>
           <option value="priority">Sort: Votes</option>
           <option value="name">Sort: Name</option>
           <option value="price">Sort: Cost</option>
         </select>
+        </label>
         {participants.length > 1 && (
+          <label className="ap-filter-field">Voting As
           <select aria-label="Vote as participant" value={participantId || ''}
                   onChange={e => onParticipantChange?.(e.target.value)}>
-            <option value="">Vote As...</option>
+            <option value="">Select participant</option>
             {participants.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
           </select>
+          </label>
         )}
       </div>
       {loading && <p className="text-muted ap-empty">Loading activities...</p>}
@@ -372,6 +450,7 @@ export default function ActivitiesPanel({
                     {!activity.isOptional && ' · Required'}
                     {activity.openingTime && ` · Open ${activity.openingTime.slice(0, 5)}–${activity.closingTime?.slice(0, 5)}`}
                   </div>
+                  {renderScheduleStatus(activity.id)}
                   <div className="ap-votes" role="group" aria-label={`Votes for ${activity.name}`}>
                     <button type="button" className={`btn-secondary${userVote === 'Upvote' ? ' ap-voted' : ''}`}
                             aria-pressed={userVote === 'Upvote'} disabled={!participantId || !votesReady || busyVote === activity.id}
@@ -382,25 +461,11 @@ export default function ActivitiesPanel({
                   </div>
                 </div>
                 <button type="button" className="btn-secondary ap-schedule-toggle"
-                        onClick={() => setScheduleId(id => id === activity.id ? '' : activity.id)}>
-                  {scheduleId === activity.id ? 'Cancel' : 'Schedule'}
+                        onClick={() => { setScheduleSource('list'); setScheduleId(id => scheduleSource === 'list' && id === activity.id ? '' : activity.id); }}>
+                  {scheduleSource === 'list' && scheduleId === activity.id ? 'Cancel' : schedulesFor(activity.id).length > 0 ? 'Schedule Again' : 'Schedule'}
                 </button>
-                {scheduleId === activity.id && (
-                  <form onSubmit={event => scheduleActivity(event, activity.id)} className="form-grid ap-schedule-form">
-                    <label>Date and Time
-                      <input type="datetime-local" value={scheduleTime}
-                             min={tripStartDate ? `${tripStartDate.slice(0, 10)}T00:00` : undefined}
-                             max={tripEndDate ? `${tripEndDate.slice(0, 10)}T23:59` : undefined}
-                             onChange={e => setScheduleTime(e.target.value)} required />
-                    </label>
-                    <label>Travel Speed (km/h)
-                      <input type="number" min="1" step="1" value={speed}
-                             onChange={e => setSpeed(e.target.value)} required />
-                    </label>
-                    <button className="btn-primary" type="submit" disabled={scheduling}>
-                      {scheduling ? 'Scheduling...' : 'Add to Calendar'}
-                    </button>
-                  </form>
+                {scheduleSource === 'list' && scheduleId === activity.id && (
+                  renderScheduleForm(activity.id)
                 )}
               </li>
             );
@@ -463,9 +528,14 @@ export default function ActivitiesPanel({
           {selection.length === 0 ? <p className="text-muted">No activities fit these limits.</p> : (
             <ul className="list">
               {selection.map(activity => (
-                <li className="list-item" key={activity.id}>
-                  <span>{activity.name}</span>
+                <li className="list-item ap-selection-row" key={activity.id}>
+                  <div><span>{activity.name}</span>{renderScheduleStatus(activity.id)}</div>
                   <span className="text-muted">{formatMoney(activity.estimatedCost)} · {formatDuration(activity.duration)}</span>
+                  <button type="button" className="btn-secondary"
+                          onClick={() => { setScheduleSource('selection'); setScheduleId(id => scheduleSource === 'selection' && id === activity.id ? '' : activity.id); }}>
+                    {scheduleSource === 'selection' && scheduleId === activity.id ? 'Cancel' : schedulesFor(activity.id).length > 0 ? 'Schedule Again' : 'Schedule'}
+                  </button>
+                  {scheduleSource === 'selection' && scheduleId === activity.id && renderScheduleForm(activity.id)}
                 </li>
               ))}
             </ul>

@@ -152,6 +152,7 @@ export default function CalendarPanel({ tripId, startDate, endDate, focusDate, p
   return (
     <section className="cp-shell" aria-label="Trip calendar">
       <h2>Trip Calendar</h2>
+      <p className="text-muted">Manual schedule and generated route are independent.</p>
 
       <div className="cp-date-controls">
         <button type="button" className="btn-secondary" onClick={() => { setDay(moveDay(day, -1)); setEditingId(''); }}
@@ -168,7 +169,7 @@ export default function CalendarPanel({ tripId, startDate, endDate, focusDate, p
       {message && <p className="text-muted cp-message" role="status">{message}</p>}
       {loading ? <p className="text-muted cp-empty">Loading calendar...</p> : (
         <>
-          <h3>Scheduled Activities ({scheduled.length})</h3>
+          <h3>Manual Schedule ({scheduled.length})</h3>
           {scheduled.length === 0 ? <p className="text-muted cp-empty">No activities scheduled for this day.</p> : (
             <ul className="list">
               {scheduled.map(entry => (
@@ -216,7 +217,7 @@ export default function CalendarPanel({ tripId, startDate, endDate, focusDate, p
             </ul>
           )}
 
-          <h3>Generated Route ({generated.length})</h3>
+          <h3>Generated Route Suggestion ({generated.length})</h3>
           {generated.length === 0 ? <p className="text-muted cp-empty">No generated route visits for this day.</p> : (
             <ul className="list">
               {generated.map((visit, i) => (
