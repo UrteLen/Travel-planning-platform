@@ -45,7 +45,7 @@ namespace TravelPlanner.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric");
 
-                    b.Property<Guid?>("BudgetId")
+                    b.Property<Guid>("BudgetId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Category")
@@ -78,7 +78,7 @@ namespace TravelPlanner.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("TripId")
+                    b.Property<Guid>("TripId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -136,7 +136,7 @@ namespace TravelPlanner.Migrations
                     b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("TripId")
+                    b.Property<Guid>("TripId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -159,7 +159,7 @@ namespace TravelPlanner.Migrations
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("TripId")
+                    b.Property<Guid>("TripId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -169,6 +169,46 @@ namespace TravelPlanner.Migrations
                     b.HasIndex("TripId");
 
                     b.ToTable("ScheduledActivity");
+                });
+
+            modelBuilder.Entity("TravelPlanner.Models.StoredTripVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActivitiesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("BudgetJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PlanJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int?>("RestoredFromVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TripId");
+
+                    b.ToTable("TripVersions");
                 });
 
             modelBuilder.Entity("TravelPlanner.Models.Trip", b =>
@@ -231,7 +271,7 @@ namespace TravelPlanner.Migrations
                     b.Property<TimeSpan?>("OpeningTime")
                         .HasColumnType("interval");
 
-                    b.Property<Guid?>("TripId")
+                    b.Property<Guid>("TripId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Votes")
@@ -260,7 +300,9 @@ namespace TravelPlanner.Migrations
                 {
                     b.HasOne("TravelPlanner.Models.Budget", null)
                         .WithMany("Expenses")
-                        .HasForeignKey("BudgetId");
+                        .HasForeignKey("BudgetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("TravelPlanner.Models.Participant", "Participant")
                         .WithMany()
@@ -275,7 +317,9 @@ namespace TravelPlanner.Migrations
                 {
                     b.HasOne("TravelPlanner.Models.Trip", null)
                         .WithMany("Participants")
-                        .HasForeignKey("TripId");
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TravelPlanner.Models.PlannedVisit", b =>
@@ -288,7 +332,9 @@ namespace TravelPlanner.Migrations
 
                     b.HasOne("TravelPlanner.Models.Trip", null)
                         .WithMany("Plan")
-                        .HasForeignKey("TripId");
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Place");
                 });
@@ -303,9 +349,20 @@ namespace TravelPlanner.Migrations
 
                     b.HasOne("TravelPlanner.Models.Trip", null)
                         .WithMany("ScheduledActivities")
-                        .HasForeignKey("TripId");
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Activity");
+                });
+
+            modelBuilder.Entity("TravelPlanner.Models.StoredTripVersion", b =>
+                {
+                    b.HasOne("TravelPlanner.Models.Trip", null)
+                        .WithMany()
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TravelPlanner.Models.Trip", b =>
@@ -323,7 +380,9 @@ namespace TravelPlanner.Migrations
                 {
                     b.HasOne("TravelPlanner.Models.Trip", null)
                         .WithMany("Activities")
-                        .HasForeignKey("TripId");
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TravelPlanner.Models.Budget", b =>
