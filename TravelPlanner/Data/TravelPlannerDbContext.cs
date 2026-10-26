@@ -14,6 +14,7 @@ public class TravelPlannerDbContext : DbContext
     }
 
     public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<StoredTripVersion> TripVersions => Set<StoredTripVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,5 +72,12 @@ public class TravelPlannerDbContext : DbContext
         modelBuilder.Entity<Trip>().HasMany(t => t.ScheduledActivities).WithOne().IsRequired();
         modelBuilder.Entity<Trip>().HasMany(t => t.Plan).WithOne().IsRequired();
         modelBuilder.Entity<Budget>().HasMany(b => b.Expenses).WithOne().IsRequired();
+
+        // Version history: snapshots are JSON, and each version belongs to a trip.
+        modelBuilder.Entity<StoredTripVersion>().Property(v => v.Id).ValueGeneratedNever();
+        modelBuilder.Entity<StoredTripVersion>().Property(v => v.BudgetJson).HasColumnType("jsonb");
+        modelBuilder.Entity<StoredTripVersion>().Property(v => v.PlanJson).HasColumnType("jsonb");
+        modelBuilder.Entity<StoredTripVersion>().Property(v => v.ActivitiesJson).HasColumnType("jsonb");
+        modelBuilder.Entity<StoredTripVersion>().HasOne<Trip>().WithMany().HasForeignKey(v => v.TripId);
     }
 }

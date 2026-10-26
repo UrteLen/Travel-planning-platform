@@ -50,10 +50,11 @@ public class PlanController : ControllerBase
         var plan = _planService.GeneratePlan(
             trip,
             start,
-            request.StartTime,
+            DateTime.SpecifyKind(request.StartTime, DateTimeKind.Utc),
             request.SpeedKmh,
             request.ChangedBy);
 
+        _tripService.SaveChanges();
         return Ok(PlanService.ToResponseList(plan));
     }
 
@@ -103,6 +104,7 @@ public class PlanController : ControllerBase
         try
         {
             var version = _planService.RestoreVersion(trip, versionNumber, changedBy);
+            _tripService.SaveChanges();
 
             return Ok(new
             {

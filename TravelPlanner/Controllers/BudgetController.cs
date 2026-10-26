@@ -60,6 +60,7 @@ public class BudgetController : ControllerBase
         }
 
         _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+        _tripService.SaveChanges();
         return Ok(new { message = "Budget limits set" });
     }
 
@@ -89,8 +90,9 @@ public class BudgetController : ControllerBase
             return BadRequest(new { error = "Participant not found" });
         }
 
-        trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
+        trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.UtcNow, participant));
         _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
+        _tripService.SaveChanges();
         return Ok(new { message = "Expense added" });
     }
 
@@ -137,7 +139,6 @@ public class BudgetController : ControllerBase
         var participant = trip.Participants.FirstOrDefault(p => p.Id == participantId);
         return participant?.Name ?? "Unknown participant";
     }
-    
     [HttpGet("export/{tripId}")]
     public IActionResult ExportSummary(Guid tripId)
     {
