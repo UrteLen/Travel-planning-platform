@@ -143,9 +143,9 @@ public class BudgetController : ControllerBase
     public IActionResult ExportSummary(Guid tripId)
     {
         var trip = _tripService.FindTripById(tripId);
-        if (trip is null || trip.Budget is null)
+        if (trip is null)
         {
-            return NotFound(new { error = "Trip or budget not found" });
+            return NotFound(new { error = "Trip not found" });
         }
 
         int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
