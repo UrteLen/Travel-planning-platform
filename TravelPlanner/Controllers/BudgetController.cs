@@ -32,7 +32,7 @@ public class BudgetController : ControllerBase
     [HttpPost("limits")]
     public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
     {
-        var trip = _tripService.FindTripByCode(request.TripCode);
+        var trip = _tripService.FindTripByCodeForUpdate(request.TripCode);
         if (trip == null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -77,7 +77,7 @@ public class BudgetController : ControllerBase
             return BadRequest(new { error = "Invalid category" });
         }
 
-        var trip = _tripService.FindTripByCode(request.TripCode);
+        var trip = _tripService.FindTripByCodeForUpdate(request.TripCode);
 
         if (trip == null)
         {

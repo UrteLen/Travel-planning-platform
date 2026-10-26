@@ -28,7 +28,7 @@ public class VotingController : ControllerBase
         Guid participantId,
         [FromBody] VoteRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {
@@ -107,7 +107,7 @@ public class VotingController : ControllerBase
         Guid activityId,
         Guid participantId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {

@@ -128,10 +128,10 @@ namespace TravelPlanner.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("ArrivalTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DepartureTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("PlaceId")
                         .HasColumnType("uuid");
@@ -157,7 +157,7 @@ namespace TravelPlanner.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("StartTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("TripId")
                         .HasColumnType("uuid");
@@ -206,7 +206,8 @@ namespace TravelPlanner.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TripId");
+                    b.HasIndex("TripId", "VersionNumber")
+                        .IsUnique();
 
                     b.ToTable("TripVersions");
                 });

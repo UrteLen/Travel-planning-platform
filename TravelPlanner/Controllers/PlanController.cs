@@ -26,7 +26,7 @@ public class PlanController : ControllerBase
     [HttpPost("{tripId}/generate")]
     public IActionResult Generate(Guid tripId, [FromBody] GeneratePlanRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -50,7 +50,7 @@ public class PlanController : ControllerBase
         var plan = _planService.GeneratePlan(
             trip,
             start,
-            DateTime.SpecifyKind(request.StartTime, DateTimeKind.Utc),
+            DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
             request.SpeedKmh,
             request.ChangedBy);
 
@@ -95,7 +95,7 @@ public class PlanController : ControllerBase
         int versionNumber,
         [FromQuery] string changedBy = "unknown")
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });

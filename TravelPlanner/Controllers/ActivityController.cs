@@ -34,7 +34,7 @@ public class ActivityController : ControllerBase
         Guid tripId,
         [FromBody] AddActivityRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip is null)
         {
@@ -86,7 +86,7 @@ public class ActivityController : ControllerBase
         Guid tripId,
         IFormFile file)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip is null)
         {

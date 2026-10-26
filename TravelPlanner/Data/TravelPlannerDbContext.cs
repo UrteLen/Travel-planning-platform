@@ -79,5 +79,12 @@ public class TravelPlannerDbContext : DbContext
         modelBuilder.Entity<StoredTripVersion>().Property(v => v.PlanJson).HasColumnType("jsonb");
         modelBuilder.Entity<StoredTripVersion>().Property(v => v.ActivitiesJson).HasColumnType("jsonb");
         modelBuilder.Entity<StoredTripVersion>().HasOne<Trip>().WithMany().HasForeignKey(v => v.TripId);
+        modelBuilder.Entity<StoredTripVersion>().HasIndex(v => new { v.TripId, v.VersionNumber }).IsUnique();
+
+        // Schedule and plan times are the trip's local clock time ("10:00 at the museum"),
+        // not a moment in UTC, so they are stored without a time zone and sent back without a "Z".
+        modelBuilder.Entity<ScheduledActivity>().Property(s => s.StartTime).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<PlannedVisit>().Property(v => v.ArrivalTime).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<PlannedVisit>().Property(v => v.DepartureTime).HasColumnType("timestamp without time zone");
     }
 }

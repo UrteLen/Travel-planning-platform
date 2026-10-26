@@ -39,7 +39,7 @@ public class TripService
 
     public Trip? JoinTrip(string inviteCode, string participantName, UserRole role = UserRole.Participant)
     {
-        var trip = FindTripByCode(inviteCode);
+        var trip = FindTripByCodeForUpdate(inviteCode);
         if (trip is null)
         {
             return null;
@@ -52,7 +52,7 @@ public class TripService
         };
 
         trip.Participants.Add(newParticipant);
-        _db.SaveChanges();
+        SaveChanges();
         return trip;
     }
 
@@ -66,9 +66,29 @@ public class TripService
         return TripsWithDetails().FirstOrDefault(t => t.Id == tripId);
     }
 
+    // Use these instead of FindTripBy... in any endpoint that changes the trip.
+    // They lock the trip's row until SaveChanges, so two requests for the same trip
+    // run one after the other and neither overwrites the other's change.
+    public Trip? FindTripByIdForUpdate(Guid tripId)
+    {
+        _db.Database.BeginTransaction();
+        _db.Database.ExecuteSql($"SELECT 1 FROM \"Trips\" WHERE \"Id\" = {tripId} FOR UPDATE");
+        return FindTripById(tripId);
+    }
+
+    public Trip? FindTripByCodeForUpdate(string inviteCode)
+    {
+        _db.Database.BeginTransaction();
+        _db.Database.ExecuteSql($"SELECT 1 FROM \"Trips\" WHERE \"InviteCode\" = {inviteCode} FOR UPDATE");
+        return FindTripByCode(inviteCode);
+    }
+
+    // Saves and releases the lock. If a request returns early without calling this,
+    // the lock is released when the request ends and nothing is saved.
     public void SaveChanges()
     {
         _db.SaveChanges();
+        _db.Database.CurrentTransaction?.Commit();
     }
 
     public string GenerateInviteCode()
