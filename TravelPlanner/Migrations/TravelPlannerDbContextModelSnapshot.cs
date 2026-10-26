@@ -26,7 +26,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.Budget", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("CategoryLimits")
@@ -41,7 +40,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.ExpenseEntry", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
@@ -71,7 +69,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.Participant", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Name")
@@ -94,7 +91,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.Place", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<TimeSpan>("ClosingTime")
@@ -129,7 +125,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.PlannedVisit", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("ArrivalTime")
@@ -156,7 +151,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.ScheduledActivity", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ActivityId")
@@ -180,7 +174,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.Trip", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("BudgetId")
@@ -214,7 +207,6 @@ namespace TravelPlanner.Migrations
             modelBuilder.Entity("TravelPlanner.Models.TripActivity", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<int>("Category")

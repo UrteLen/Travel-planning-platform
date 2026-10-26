@@ -18,10 +18,10 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
         new System.Text.Json.Serialization.JsonStringEnumConverter()));
-        
+
 builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-builder.Services.AddSingleton<TripService>();
+builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<ActivitySchedulingService>();
 builder.Services.AddScoped<ActivityVotingService>();
