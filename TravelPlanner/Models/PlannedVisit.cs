@@ -3,6 +3,11 @@ namespace TravelPlanner.Models;
 public record PlannedVisit(Place Place, DateTime ArrivalTime, DateTime DepartureTime)
     : IComparable<PlannedVisit>
 {
+    public Guid Id { get; init; } = Guid.NewGuid();
+    private PlannedVisit() : this(null!, default, default)
+    {
+    }
+    
     public int CompareTo(PlannedVisit? other)
     {
         if (other is null)

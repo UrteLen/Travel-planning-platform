@@ -94,4 +94,7 @@ public class TripActivity
             Votes = new Dictionary<Guid, VoteType>(Votes)
         };
     }
+    private TripActivity()
+    {
+    }
 }

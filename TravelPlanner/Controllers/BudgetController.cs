@@ -83,7 +83,8 @@ public class BudgetController : ControllerBase
             return BadRequest(new { error = "Trip not found" });
         }
 
-        if (!trip.Participants.TryGetValue(request.ParticipantId, out var participant))
+        var participant = trip.Participants.FirstOrDefault(p => p.Id == request.ParticipantId);
+        if (participant is null)
         {
             return BadRequest(new { error = "Participant not found" });
         }
@@ -119,7 +120,7 @@ public class BudgetController : ControllerBase
             return NotFound(new { error = "Trip not found" });
         }
 
-        var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
+        var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants);
         var settlements = _settlementService.SimplifyDebts(balances);
 
         var result = settlements.Select(s => new SettlementResponse(
@@ -133,13 +134,10 @@ public class BudgetController : ControllerBase
 
     private static string GetParticipantName(Trip trip, Guid participantId)
     {
-        if (trip.Participants.TryGetValue(participantId, out var participant))
-        {
-            return participant.Name;
-        }
-
-        return "Unknown participant";
+        var participant = trip.Participants.FirstOrDefault(p => p.Id == participantId);
+        return participant?.Name ?? "Unknown participant";
     }
+    
     [HttpGet("export/{tripId}")]
     public IActionResult ExportSummary(Guid tripId)
     {

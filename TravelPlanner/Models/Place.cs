@@ -2,6 +2,7 @@ namespace TravelPlanner.Models;
 
 public class Place
 {
+    public Guid Id { get; init; } = Guid.NewGuid();
     public required string Name { get; set; }
     public GeoLocation Location { get; set; }
     public TimeSpan VisitDuration { get; set; }

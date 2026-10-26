@@ -12,4 +12,8 @@ public class ScheduledActivity
         Activity = activity;
         StartTime = startTime;
     }
+    private ScheduledActivity()
+    {
+        Activity = null!;
+    }
 }

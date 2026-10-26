@@ -22,7 +22,7 @@ public class TripService
             StartDate = startDate,
             EndDate = endDate,
             InviteCode = GenerateInviteCode(),
-            Participants = new Dictionary<Guid, Participant> { { organizer.Id, organizer } }
+            Participants = new List<Participant> { organizer}
         };
 
         _trips.Add(trip);
@@ -43,7 +43,7 @@ public class TripService
             Role = role
         };
 
-        trip.Participants.Add(newParticipant.Id, newParticipant);
+        trip.Participants.Add(newParticipant);
         return trip;
     }
 

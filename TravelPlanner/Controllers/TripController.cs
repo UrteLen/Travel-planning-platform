@@ -73,11 +73,11 @@ public class TripController : ControllerBase
     private TripResponse ToTripResponse(Trip trip)
     {
         var participants = trip.Participants.ToDictionary(
-            entry => entry.Key,
-            entry => new ParticipantResponse(
-                entry.Value.Id,
-                entry.Value.Name,
-                entry.Value.Role));
+            participant => participant.Id,
+            participant => new ParticipantResponse(
+                participant.Id,
+                participant.Name,
+                participant.Role));
 
         var activities = trip.Activities.Select(activity =>
                 new ActivityResponse(
