@@ -34,7 +34,7 @@ public class ActivityController : ControllerBase
         Guid tripId,
         [FromBody] AddActivityRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip is null)
         {
@@ -68,6 +68,7 @@ public class ActivityController : ControllerBase
                 request.OpeningTime,
                 request.ClosingTime);
 
+            _tripService.SaveChanges();
             return Ok(ToActivityResponse(activity));
         }
         catch (ArgumentException ex)
@@ -85,7 +86,7 @@ public class ActivityController : ControllerBase
         Guid tripId,
         IFormFile file)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip is null)
         {
@@ -110,6 +111,7 @@ public class ActivityController : ControllerBase
                 responses.Add(ToActivityResponse(activity));
             }
 
+            _tripService.SaveChanges();
             return Ok(responses);
         }
         catch (JsonException)

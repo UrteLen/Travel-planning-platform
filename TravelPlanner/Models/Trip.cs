@@ -7,7 +7,7 @@ public class Trip
     public string Destination { get; set; } = string.Empty;
     public DateTime StartDate { get; set; } = DateTime.UtcNow;
     public DateTime EndDate { get; set; } = DateTime.UtcNow;
-    public Dictionary<Guid, Participant> Participants { get; set; } = new();
+    public List<Participant> Participants { get; set; } = new();
     public List<TripActivity> Activities { get; set; } = new();
     public List<ScheduledActivity> ScheduledActivities { get; set; } = new();
     public Budget Budget { get; set; } = new();

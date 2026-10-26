@@ -16,7 +16,7 @@ public class ActivityVotingService
             throw new ArgumentException("Invalid vote type.");
         }
 
-        if (!trip.Participants.ContainsKey(participantId))
+        if (!trip.Participants.Any(p => p.Id == participantId))
         {
             throw new KeyNotFoundException("Participant not found in this trip.");
         }
@@ -44,7 +44,7 @@ public class ActivityVotingService
 
     public bool RemoveVote(Trip trip, Guid participantId, Guid activityId)
     {
-        if (!trip.Participants.ContainsKey(participantId))
+        if (!trip.Participants.Any(p => p.Id == participantId))
         {
             throw new KeyNotFoundException("Participant not found in this trip.");
         }

@@ -1,4 +1,6 @@
 using TravelPlanner.Service;
+using Microsoft.EntityFrameworkCore;
+using TravelPlanner.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,9 @@ builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
         new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
-builder.Services.AddSingleton<TripService>();
+builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<ActivitySchedulingService>();
 builder.Services.AddScoped<ActivityVotingService>();
@@ -26,7 +30,7 @@ builder.Services.AddScoped<SettlementService>();
 builder.Services.AddScoped<SummaryService>();
 builder.Services.AddScoped<ActivityImportService>();
 builder.Services.AddScoped<PdfExportService>();
-builder.Services.AddSingleton<TripVersionService>();
+builder.Services.AddScoped<TripVersionService>();
 builder.Services.AddSingleton<VisitScheduler>();
 builder.Services.AddScoped<DayPlanningService>();
 builder.Services.AddScoped<PlanService>();

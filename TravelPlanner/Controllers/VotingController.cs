@@ -28,7 +28,7 @@ public class VotingController : ControllerBase
         Guid participantId,
         [FromBody] VoteRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {
@@ -48,6 +48,7 @@ public class VotingController : ControllerBase
                 activityId,
                 request.VoteType.Value);
 
+            _tripService.SaveChanges();
             return Ok();
         }
         catch (KeyNotFoundException ex)
@@ -106,7 +107,7 @@ public class VotingController : ControllerBase
         Guid activityId,
         Guid participantId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {
@@ -125,6 +126,7 @@ public class VotingController : ControllerBase
             return NotFound(ex.Message);
         }
 
+        _tripService.SaveChanges();
         return NoContent();
     }
 }

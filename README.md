@@ -23,13 +23,27 @@ This platform will be designed to help group of planners plan, budget and settle
 
 ## Local development with HTTPS
 
-Requires .NET 10 and Node.js with npm.
+Requires .NET 10, Node.js with npm, and Docker Desktop.
 
 Trust the local HTTPS certificate once on each developer's computer:
 
 ```sh
 dotnet dev-certs https --trust
 ```
+
+### Database (PostgreSQL in Docker)
+
+Requires Docker Desktop. Run these once, from the repository root:
+
+1. Copy `.env.example` to `.env` and choose a local password.
+2. Start the database: `docker compose up -d`
+3. Install the EF Core tool: `dotnet tool install --global dotnet-ef`
+4. Save the connection string as a user secret (use the same password as in `.env`):
+   `dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Database=travelplanner;Username=travel;Password=YOUR_PASSWORD" --project TravelPlanner`
+5. Create the tables: `dotnet ef database update --project TravelPlanner`
+
+After pulling changes that include new migrations, run step 5 again.
+Stop the database with `docker compose down` (your data is kept).
 
 Start the backend from the repository root:
 

@@ -21,7 +21,7 @@ public class TripActivity
         GeoLocation location,
         TimeSpan duration,
         decimal estimatedCost = 0m,
-        bool optional = true,
+        bool isOptional = true,
         TimeSpan? openingTime = null,
         TimeSpan? closingTime = null)
     {
@@ -73,7 +73,7 @@ public class TripActivity
         Location = location;
         Duration = duration;
         EstimatedCost = estimatedCost;
-        IsOptional = optional;
+        IsOptional = isOptional;
         OpeningTime = openingTime;
         ClosingTime = closingTime;
     }
@@ -93,5 +93,8 @@ public class TripActivity
             ClosingTime = ClosingTime,
             Votes = new Dictionary<Guid, VoteType>(Votes)
         };
+    }
+    private TripActivity()
+    {
     }
 }

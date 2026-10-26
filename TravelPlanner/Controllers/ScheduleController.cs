@@ -24,7 +24,7 @@ public class ScheduleController : ControllerBase
         Guid tripId,
         [FromBody] ScheduleActivityRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {
@@ -52,9 +52,10 @@ public class ScheduleController : ControllerBase
             var scheduledActivity = _activitySchedulingService.ScheduleActivity(
                 trip,
                 activity,
-                request.StartTime,
+                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
                 request.SpeedKmh);
 
+            _tripService.SaveChanges();
             return Ok(scheduledActivity);
         }
         catch (InvalidOperationException ex)
@@ -100,7 +101,7 @@ public class ScheduleController : ControllerBase
         Guid tripId,
         Guid scheduledActivityId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {
@@ -112,6 +113,7 @@ public class ScheduleController : ControllerBase
             return NotFound("Scheduled activity not found.");
         }
 
+        _tripService.SaveChanges();
         return NoContent();
     }
 
@@ -121,7 +123,7 @@ public class ScheduleController : ControllerBase
         Guid scheduledActivityId,
         [FromBody] UpdateScheduledActivityRequest request)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = _tripService.FindTripByIdForUpdate(tripId);
 
         if (trip == null)
         {
@@ -133,9 +135,10 @@ public class ScheduleController : ControllerBase
             var updatedActivity = _activitySchedulingService.UpdateScheduledActivity(
                 trip,
                 scheduledActivityId,
-                request.StartTime,
+                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
                 request.SpeedKmh);
 
+            _tripService.SaveChanges();
             return Ok(updatedActivity);
         }
         catch (KeyNotFoundException ex)

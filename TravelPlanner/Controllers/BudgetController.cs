@@ -32,7 +32,7 @@ public class BudgetController : ControllerBase
     [HttpPost("limits")]
     public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
     {
-        var trip = _tripService.FindTripByCode(request.TripCode);
+        var trip = _tripService.FindTripByCodeForUpdate(request.TripCode);
         if (trip == null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -60,6 +60,7 @@ public class BudgetController : ControllerBase
         }
 
         _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+        _tripService.SaveChanges();
         return Ok(new { message = "Budget limits set" });
     }
 
@@ -76,20 +77,22 @@ public class BudgetController : ControllerBase
             return BadRequest(new { error = "Invalid category" });
         }
 
-        var trip = _tripService.FindTripByCode(request.TripCode);
+        var trip = _tripService.FindTripByCodeForUpdate(request.TripCode);
 
         if (trip == null)
         {
             return BadRequest(new { error = "Trip not found" });
         }
 
-        if (!trip.Participants.TryGetValue(request.ParticipantId, out var participant))
+        var participant = trip.Participants.FirstOrDefault(p => p.Id == request.ParticipantId);
+        if (participant is null)
         {
             return BadRequest(new { error = "Participant not found" });
         }
 
-        trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.Now, participant));
+        trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.UtcNow, participant));
         _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
+        _tripService.SaveChanges();
         return Ok(new { message = "Expense added" });
     }
 
@@ -119,7 +122,7 @@ public class BudgetController : ControllerBase
             return NotFound(new { error = "Trip not found" });
         }
 
-        var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants.Values);
+        var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants);
         var settlements = _settlementService.SimplifyDebts(balances);
 
         var result = settlements.Select(s => new SettlementResponse(
@@ -133,12 +136,8 @@ public class BudgetController : ControllerBase
 
     private static string GetParticipantName(Trip trip, Guid participantId)
     {
-        if (trip.Participants.TryGetValue(participantId, out var participant))
-        {
-            return participant.Name;
-        }
-
-        return "Unknown participant";
+        var participant = trip.Participants.FirstOrDefault(p => p.Id == participantId);
+        return participant?.Name ?? "Unknown participant";
     }
     [HttpGet("export/{tripId}")]
     public IActionResult ExportSummary(Guid tripId)

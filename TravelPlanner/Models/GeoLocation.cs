@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TravelPlanner.Models;
 
 public readonly struct GeoLocation
@@ -5,6 +7,7 @@ public readonly struct GeoLocation
     public double Latitude { get; }
     public double Longitude { get; }
 
+    [JsonConstructor]
     public GeoLocation(double latitude, double longitude)
     {
         if (!double.IsFinite(latitude) || latitude < -90 || latitude > 90)

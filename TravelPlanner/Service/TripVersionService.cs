@@ -1,73 +1,78 @@
+using System.Text.Json;
+using TravelPlanner.Data;
 using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 
 public class TripVersionService
 {
-    private readonly Dictionary<Guid, List<TripVersion>> _versionsByTrip = new();
-    private readonly object _lock = new();
+    private readonly TravelPlannerDbContext _db;
+
+    public TripVersionService(TravelPlannerDbContext db)
+    {
+        _db = db;
+    }
 
     public TripVersion SaveVersion(Guid tripId, Budget budget, List<PlannedVisit> plan, List<TripActivity> activities, string changedBy)
     {
-        lock (_lock)
-        {
-            var list = GetList(tripId);
-            var version = new TripVersion(list.Count + 1, DateTime.UtcNow, changedBy,
-                budget.Clone(), CopyPlan(plan), CopyActivities(activities), null);
-            list.Add(version);
-            return version;
-        }
+        return AddVersion(tripId, budget, plan, activities, changedBy, restoredFromVersion: null);
     }
 
     public List<TripVersion> GetHistory(Guid tripId)
     {
-        lock (_lock)
-        {
-            return new List<TripVersion>(GetList(tripId));
-        }
+        return _db.TripVersions
+            .Where(v => v.TripId == tripId)
+            .OrderBy(v => v.VersionNumber)
+            .AsEnumerable()
+            .Select(ToTripVersion)
+            .ToList();
     }
 
     public TripVersion? GetVersion(Guid tripId, int versionNumber)
     {
-        lock (_lock)
-        {
-            return GetList(tripId).FirstOrDefault(v => v.VersionNumber == versionNumber);
-        }
+        var stored = _db.TripVersions
+            .FirstOrDefault(v => v.TripId == tripId && v.VersionNumber == versionNumber);
+
+        return stored is null ? null : ToTripVersion(stored);
     }
 
     public TripVersion Restore(Guid tripId, int versionNumber, string changedBy)
     {
-        lock (_lock)
+        var restored = GetVersion(tripId, versionNumber)
+            ?? throw new ArgumentException("Version not found");
+
+        return AddVersion(tripId, restored.BudgetSnapshot, restored.PlanSnapshot,
+            restored.ActivitiesSnapshot, changedBy, versionNumber);
+    }
+
+    private TripVersion AddVersion(Guid tripId, Budget budget, List<PlannedVisit> plan,
+        List<TripActivity> activities, string changedBy, int? restoredFromVersion)
+    {
+        var stored = new StoredTripVersion
         {
-            var list = GetList(tripId);
-            var restored = list.FirstOrDefault(v => v.VersionNumber == versionNumber)
-                ?? throw new ArgumentException("Version not found");
+            TripId = tripId,
+            VersionNumber = _db.TripVersions.Count(v => v.TripId == tripId) + 1,
+            Timestamp = DateTime.UtcNow,
+            ChangedBy = changedBy,
+            RestoredFromVersion = restoredFromVersion,
+            BudgetJson = JsonSerializer.Serialize(budget),
+            PlanJson = JsonSerializer.Serialize(plan),
+            ActivitiesJson = JsonSerializer.Serialize(activities)
+        };
 
-            var version = new TripVersion(list.Count + 1, DateTime.UtcNow, changedBy,
-                restored.BudgetSnapshot.Clone(), CopyPlan(restored.PlanSnapshot),
-                CopyActivities(restored.ActivitiesSnapshot), versionNumber);
-            list.Add(version);
-            return version;
-        }
+        _db.TripVersions.Add(stored);
+        return ToTripVersion(stored);
     }
 
-    public List<PlannedVisit> CopyPlan(IEnumerable<PlannedVisit> plan)
+    private static TripVersion ToTripVersion(StoredTripVersion stored)
     {
-        return plan.Select(v => v with { Place = v.Place.Clone() }).ToList();
-    }
-
-    public List<TripActivity> CopyActivities(IEnumerable<TripActivity> activities)
-    {
-        return activities.Select(a => a.Clone()).ToList();
-    }
-
-    private List<TripVersion> GetList(Guid tripId)
-    {
-        if (!_versionsByTrip.TryGetValue(tripId, out var list))
-        {
-            list = new List<TripVersion>();
-            _versionsByTrip[tripId] = list;
-        }
-        return list;
+        return new TripVersion(
+            stored.VersionNumber,
+            stored.Timestamp,
+            stored.ChangedBy,
+            JsonSerializer.Deserialize<Budget>(stored.BudgetJson)!,
+            JsonSerializer.Deserialize<List<PlannedVisit>>(stored.PlanJson)!,
+            JsonSerializer.Deserialize<List<TripActivity>>(stored.ActivitiesJson)!,
+            stored.RestoredFromVersion);
     }
 }
