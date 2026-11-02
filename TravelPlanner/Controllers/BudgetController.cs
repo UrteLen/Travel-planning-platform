@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Service;
-using TravelPlanner.Requests;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
+using TravelPlanner.Requests;
 using TravelPlanner.Responses;
+using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers;
 
@@ -17,9 +17,14 @@ public class BudgetController : ControllerBase
     private readonly SummaryService _summaryService;
     private readonly PdfExportService _pdfExportService;
     private readonly TripVersionService _versionService;
-    public BudgetController(TripService tripService, BudgetService budgetService,
-                            SettlementService settlementService, SummaryService summaryService,
-                            PdfExportService pdfExportService, TripVersionService versionService)
+
+    public BudgetController(
+        TripService tripService,
+        BudgetService budgetService,
+        SettlementService settlementService,
+        SummaryService summaryService,
+        PdfExportService pdfExportService,
+        TripVersionService versionService)
     {
         _tripService = tripService;
         _budgetService = budgetService;
@@ -30,42 +35,52 @@ public class BudgetController : ControllerBase
     }
 
     [HttpPost("limits")]
-    public IActionResult SetLimits([FromBody] SetBudgetLimitsRequest request)
+    public async Task<IActionResult> SetLimitsAsync(
+        [FromBody] SetBudgetLimitsRequest request)
     {
-        var trip = _tripService.FindTripByCodeForUpdate(request.TripCode);
-        if (trip == null)
+        var trip = await _tripService.FindTripByCodeForUpdateAsync(request.TripCode);
+
+        if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        var parsed = new Dictionary<Category, decimal>();
-        foreach (var pair in request.CategoryLimits)
+        try
         {
-            if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
+            var parsed = new Dictionary<Category, decimal>();
+            foreach (var pair in request.CategoryLimits)
             {
-                return BadRequest(new { error = $"Unknown category: {pair.Key}" });
+                if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
+                {
+                    return BadRequest(new { error = $"Unknown category: {pair.Key}" });
+                }
+
+                if (pair.Value < 0)
+                {
+                    return BadRequest(new { error = $"Limit for {pair.Key} cannot be negative" });
+                }
+
+                parsed[category] = pair.Value;
             }
 
-            if (pair.Value < 0)
+            foreach (var pair in parsed)
             {
-                return BadRequest(new { error = $"Limit for {pair.Key} cannot be negative" });
+                trip.Budget.CategoryLimits[pair.Key] = pair.Value;
             }
 
-            parsed[category] = pair.Value;
+            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+            await _tripService.SaveChangesAsync();
+            return Ok(new { message = "Budget limits set" });
         }
-
-        foreach (var pair in parsed)
+        finally
         {
-            trip.Budget.CategoryLimits[pair.Key] = pair.Value;
+            await _tripService.RollbackTransactionAsync();
         }
-
-        _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
-        _tripService.SaveChanges();
-        return Ok(new { message = "Budget limits set" });
     }
 
     [HttpPost("expense")]
-    public IActionResult AddExpense([FromBody] AddExpenseRequest request)
+    public async Task<IActionResult> AddExpenseAsync(
+        [FromBody] AddExpenseRequest request)
     {
         if (request.Amount <= 0)
         {
@@ -77,31 +92,38 @@ public class BudgetController : ControllerBase
             return BadRequest(new { error = "Invalid category" });
         }
 
-        var trip = _tripService.FindTripByCodeForUpdate(request.TripCode);
+        var trip = await _tripService.FindTripByCodeForUpdateAsync(request.TripCode);
 
-        if (trip == null)
+        if (trip is null)
         {
             return BadRequest(new { error = "Trip not found" });
         }
 
-        var participant = trip.Participants.FirstOrDefault(p => p.Id == request.ParticipantId);
-        if (participant is null)
+        try
         {
-            return BadRequest(new { error = "Participant not found" });
-        }
+            var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == request.ParticipantId);
+            if (participant is null)
+            {
+                return BadRequest(new { error = "Participant not found" });
+            }
 
-        trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.UtcNow, participant));
-        _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
-        _tripService.SaveChanges();
-        return Ok(new { message = "Expense added" });
+            trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.UtcNow, participant));
+            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
+            await _tripService.SaveChangesAsync();
+            return Ok(new { message = "Expense added" });
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
+        }
     }
 
     [HttpGet("summary")]
-    public IActionResult GetSummary(string tripCode)
+    public async Task<IActionResult> GetSummaryAsync(string tripCode)
     {
-        var trip = _tripService.FindTripByCode(tripCode);
+        var trip = await _tripService.FindTripByCodeAsync(tripCode);
 
-        if (trip == null)
+        if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
@@ -113,11 +135,11 @@ public class BudgetController : ControllerBase
     }
 
     [HttpGet("settlement")]
-    public IActionResult GetSettlement(string tripCode)
+    public async Task<IActionResult> GetSettlementAsync(string tripCode)
     {
-        var trip = _tripService.FindTripByCode(tripCode);
+        var trip = await _tripService.FindTripByCodeAsync(tripCode);
 
-        if (trip == null)
+        if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
@@ -125,10 +147,10 @@ public class BudgetController : ControllerBase
         var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants);
         var settlements = _settlementService.SimplifyDebts(balances);
 
-        var result = settlements.Select(s => new SettlementResponse(
-            GetParticipantName(trip, s.FromParticipantId),
-            GetParticipantName(trip, s.ToParticipantId),
-            s.Amount
+        var result = settlements.Select(settlement => new SettlementResponse(
+            GetParticipantName(trip, settlement.FromParticipantId),
+            GetParticipantName(trip, settlement.ToParticipantId),
+            settlement.Amount
         )).ToList();
 
         return Ok(result);
@@ -136,13 +158,14 @@ public class BudgetController : ControllerBase
 
     private static string GetParticipantName(Trip trip, Guid participantId)
     {
-        var participant = trip.Participants.FirstOrDefault(p => p.Id == participantId);
+        var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == participantId);
         return participant?.Name ?? "Unknown participant";
     }
+
     [HttpGet("export/{tripId}")]
-    public IActionResult ExportSummary(Guid tripId)
+    public async Task<IActionResult> ExportSummaryAsync(Guid tripId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -154,5 +177,4 @@ public class BudgetController : ControllerBase
 
         return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
     }
-
 }

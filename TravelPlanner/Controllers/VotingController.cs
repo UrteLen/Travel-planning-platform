@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelPlanner.Enums;
 using TravelPlanner.Requests;
-using TravelPlanner.Service;
 using TravelPlanner.Responses;
+using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers;
 
@@ -12,43 +12,35 @@ public class VotingController : ControllerBase
 {
     private readonly TripService _tripService;
     private readonly ActivityVotingService _activityVotingService;
+    private readonly ActivityManagementService _activityManagementService;
 
     public VotingController(
         TripService tripService,
-        ActivityVotingService activityVotingService)
+        ActivityVotingService activityVotingService,
+        ActivityManagementService activityManagementService)
     {
         _tripService = tripService;
         _activityVotingService = activityVotingService;
+        _activityManagementService = activityManagementService;
     }
 
     [HttpPut("{participantId}")]
-    public IActionResult Vote(
+    public async Task<IActionResult> VoteAsync(
         Guid tripId,
         Guid activityId,
         Guid participantId,
         [FromBody] VoteRequest request)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip == null)
+        if (request.VoteType is null)
         {
-            return NotFound("Trip not found.");
+            return BadRequest("Vote type is required.");
         }
 
         try
         {
-            if (request.VoteType is null)
-            {
-                return BadRequest("Vote type is required.");
-            }
+            await _activityManagementService.VoteAsync(
+                tripId, participantId, activityId, request.VoteType.Value);
 
-            _activityVotingService.Vote(
-                trip,
-                participantId,
-                activityId,
-                request.VoteType.Value);
-
-            _tripService.SaveChanges();
             return Ok();
         }
         catch (KeyNotFoundException ex)
@@ -62,14 +54,14 @@ public class VotingController : ControllerBase
     }
 
     [HttpGet("results")]
-    public IActionResult GetVoteResults(
+    public async Task<IActionResult> GetVoteResultsAsync(
         Guid tripId,
         Guid activityId,
         [FromQuery] Guid? participantId = null)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
 
-        if (trip == null)
+        if (trip is null)
         {
             return NotFound("Trip not found.");
         }
@@ -77,7 +69,7 @@ public class VotingController : ControllerBase
         var activity = trip.Activities
             .FirstOrDefault(candidate => candidate.Id == activityId);
 
-        if (activity == null)
+        if (activity is null)
         {
             return NotFound("Activity not found in the trip.");
         }
@@ -102,31 +94,21 @@ public class VotingController : ControllerBase
     }
 
     [HttpDelete("{participantId}")]
-    public IActionResult RemoveVote(
+    public async Task<IActionResult> RemoveVoteAsync(
         Guid tripId,
         Guid activityId,
         Guid participantId)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip == null)
-        {
-            return NotFound("Trip not found.");
-        }
-
         try
         {
-            if (!_activityVotingService.RemoveVote(trip, participantId, activityId))
-            {
-                return NotFound("Vote not found.");
-            }
+            await _activityManagementService.RemoveVoteAsync(
+                tripId, participantId, activityId);
+
+            return NoContent();
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ex.Message);
         }
-
-        _tripService.SaveChanges();
-        return NoContent();
     }
 }

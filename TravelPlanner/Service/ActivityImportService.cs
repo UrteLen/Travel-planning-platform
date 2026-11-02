@@ -1,20 +1,20 @@
 using System.Text.Json;
-using TravelPlanner.Imports;
 using TravelPlanner.Enums;
+using TravelPlanner.Imports;
 using TravelPlanner.Models;
 
 namespace TravelPlanner.Service;
 
 public class ActivityImportService
 {
-    public List<ActivityImportData> LoadFromJson(Stream stream)
+    public async Task<List<ActivityImportData>> LoadFromJsonAsync(Stream stream)
     {
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
 
-        var activities = JsonSerializer.Deserialize<List<ActivityImportData>>(stream, options);
+        var activities = await JsonSerializer.DeserializeAsync<List<ActivityImportData>>(stream, options);
         return activities ?? new List<ActivityImportData>();
     }
 
@@ -68,9 +68,9 @@ public class ActivityImportService
         return activities;
     }
 
-    public List<TripActivity> LoadActivitiesFromJson(Stream stream)
+    public async Task<List<TripActivity>> LoadActivitiesFromJsonAsync(Stream stream)
     {
-        var importedActivities = LoadFromJson(stream);
+        var importedActivities = await LoadFromJsonAsync(stream);
 
         return ConvertToActivities(importedActivities);
     }

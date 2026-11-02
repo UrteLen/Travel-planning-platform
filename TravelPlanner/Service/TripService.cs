@@ -14,7 +14,12 @@ public class TripService
         _db = db;
     }
 
-    public Trip CreateTrip(string name, string destination, DateTime startDate, DateTime endDate, string organizerName)
+    public async Task<Trip> CreateTripAsync(
+        string name,
+        string destination,
+        DateTime startDate,
+        DateTime endDate,
+        string organizerName)
     {
         var organizer = new Participant
         {
@@ -33,62 +38,148 @@ public class TripService
         };
 
         _db.Trips.Add(trip);
-        _db.SaveChanges();
+        await _db.SaveChangesAsync();
         return trip;
     }
 
-    public Trip? JoinTrip(string inviteCode, string participantName, UserRole role = UserRole.Participant)
+    public async Task<Trip?> JoinTripAsync(
+        string inviteCode,
+        string participantName,
+        UserRole role = UserRole.Participant)
     {
-        var trip = FindTripByCodeForUpdate(inviteCode);
+        var trip = await FindTripByCodeForUpdateAsync(inviteCode);
+
         if (trip is null)
         {
             return null;
         }
 
-        var newParticipant = new Participant
+        try
         {
-            Name = participantName,
-            Role = role
-        };
+            var newParticipant = new Participant
+            {
+                Name = participantName,
+                Role = role
+            };
 
-        trip.Participants.Add(newParticipant);
-        SaveChanges();
-        return trip;
+            trip.Participants.Add(newParticipant);
+            await SaveChangesAsync();
+            return trip;
+        }
+        finally
+        {
+            await RollbackTransactionAsync();
+        }
     }
 
-    public Trip? FindTripByCode(string inviteCode)
+    public async Task<Trip?> FindTripByCodeAsync(string inviteCode)
     {
-        return TripsWithDetails().FirstOrDefault(t => t.InviteCode == inviteCode);
+        return await TripsWithDetails()
+            .FirstOrDefaultAsync(trip => trip.InviteCode == inviteCode);
     }
 
-    public Trip? FindTripById(Guid tripId)
+    public async Task<Trip?> FindTripByIdAsync(Guid tripId)
     {
-        return TripsWithDetails().FirstOrDefault(t => t.Id == tripId);
+        return await TripsWithDetails()
+            .FirstOrDefaultAsync(trip => trip.Id == tripId);
     }
 
     // Use these instead of FindTripBy... in any endpoint that changes the trip.
-    // They lock the trip's row until SaveChanges, so two requests for the same trip
+    // They lock the trip's row until SaveChangesAsync, so two requests for the same trip
     // run one after the other and neither overwrites the other's change.
-    public Trip? FindTripByIdForUpdate(Guid tripId)
+    public async Task<Trip?> FindTripByIdForUpdateAsync(Guid tripId)
     {
-        _db.Database.BeginTransaction();
-        _db.Database.ExecuteSql($"SELECT 1 FROM \"Trips\" WHERE \"Id\" = {tripId} FOR UPDATE");
-        return FindTripById(tripId);
+        await _db.Database.BeginTransactionAsync();
+
+        Trip? trip;
+
+        try
+        {
+            await _db.Database.ExecuteSqlAsync(
+                $"SELECT 1 FROM \"Trips\" WHERE \"Id\" = {tripId} FOR UPDATE");
+
+            trip = await FindTripByIdAsync(tripId);
+        }
+        catch
+        {
+            await RollbackTransactionAsync();
+            throw;
+        }
+
+        if (trip is null)
+        {
+            await RollbackTransactionAsync();
+        }
+
+        return trip;
     }
 
-    public Trip? FindTripByCodeForUpdate(string inviteCode)
+    public async Task<Trip?> FindTripByCodeForUpdateAsync(string inviteCode)
     {
-        _db.Database.BeginTransaction();
-        _db.Database.ExecuteSql($"SELECT 1 FROM \"Trips\" WHERE \"InviteCode\" = {inviteCode} FOR UPDATE");
-        return FindTripByCode(inviteCode);
+        await _db.Database.BeginTransactionAsync();
+
+        Trip? trip;
+
+        try
+        {
+            await _db.Database.ExecuteSqlAsync(
+                $"SELECT 1 FROM \"Trips\" WHERE \"InviteCode\" = {inviteCode} FOR UPDATE");
+
+            trip = await FindTripByCodeAsync(inviteCode);
+        }
+        catch
+        {
+            await RollbackTransactionAsync();
+            throw;
+        }
+
+        if (trip is null)
+        {
+            await RollbackTransactionAsync();
+        }
+
+        return trip;
     }
 
-    // Saves and releases the lock. If a request returns early without calling this,
-    // the lock is released when the request ends and nothing is saved.
-    public void SaveChanges()
+    // Saves and releases the lock. Call RollbackTransactionAsync in finally
+    // to release an unfinished transaction on validation errors or early returns.
+    public async Task SaveChangesAsync()
     {
-        _db.SaveChanges();
-        _db.Database.CurrentTransaction?.Commit();
+        var transaction = _db.Database.CurrentTransaction;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync();
+            }
+        }
+        finally
+        {
+            if (transaction is not null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        var transaction = _db.Database.CurrentTransaction;
+
+        if (transaction is not null)
+        {
+            try
+            {
+                await transaction.RollbackAsync();
+            }
+            finally
+            {
+                await transaction.DisposeAsync();
+            }
+        }
     }
 
     public string GenerateInviteCode()
@@ -99,15 +190,15 @@ public class TripService
     private IQueryable<Trip> TripsWithDetails()
     {
         return _db.Trips
-            .Include(t => t.Participants)
-            .Include(t => t.Activities)
-            .Include(t => t.ScheduledActivities)
-                .ThenInclude(s => s.Activity)
-            .Include(t => t.Budget)
-                .ThenInclude(b => b.Expenses)
-                    .ThenInclude(e => e.Participant)
-            .Include(t => t.Plan)
-                .ThenInclude(v => v.Place)
+            .Include(trip => trip.Participants)
+            .Include(trip => trip.Activities)
+            .Include(trip => trip.ScheduledActivities)
+                .ThenInclude(scheduledActivity => scheduledActivity.Activity)
+            .Include(trip => trip.Budget)
+                .ThenInclude(budget => budget.Expenses)
+                    .ThenInclude(expense => expense.Participant)
+            .Include(trip => trip.Plan)
+                .ThenInclude(visit => visit.Place)
             .AsSplitQuery();
     }
 }

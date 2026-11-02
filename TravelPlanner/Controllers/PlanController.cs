@@ -24,44 +24,55 @@ public class PlanController : ControllerBase
     }
 
     [HttpPost("{tripId}/generate")]
-    public IActionResult Generate(Guid tripId, [FromBody] GeneratePlanRequest request)
+    public async Task<IActionResult> GenerateAsync(
+        Guid tripId,
+        [FromBody] GeneratePlanRequest request)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
+        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
+
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        if (request.SpeedKmh <= 0)
-        {
-            return BadRequest(new { error = "Speed must be positive" });
-        }
-
-        GeoLocation start;
         try
         {
-            start = new GeoLocation(request.StartLatitude, request.StartLongitude);
+            if (request.SpeedKmh <= 0)
+            {
+                return BadRequest(new { error = "Speed must be positive" });
+            }
+
+            GeoLocation start;
+            try
+            {
+                start = new GeoLocation(request.StartLatitude, request.StartLongitude);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return BadRequest(new { error = "Invalid start coordinates" });
+            }
+
+            var plan = _planService.GeneratePlan(
+                trip,
+                start,
+                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
+                request.SpeedKmh,
+                request.ChangedBy);
+
+            await _tripService.SaveChangesAsync();
+            return Ok(PlanService.ToResponseList(plan));
         }
-        catch (ArgumentOutOfRangeException)
+        finally
         {
-            return BadRequest(new { error = "Invalid start coordinates" });
+            await _tripService.RollbackTransactionAsync();
         }
-
-        var plan = _planService.GeneratePlan(
-            trip,
-            start,
-            DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
-            request.SpeedKmh,
-            request.ChangedBy);
-
-        _tripService.SaveChanges();
-        return Ok(PlanService.ToResponseList(plan));
     }
 
     [HttpGet("{tripId}")]
-    public IActionResult Get(Guid tripId)
+    public async Task<IActionResult> GetAsync(Guid tripId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
+
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -71,31 +82,32 @@ public class PlanController : ControllerBase
     }
 
     [HttpGet("{tripId}/history")]
-    public IActionResult History(Guid tripId)
+    public async Task<IActionResult> HistoryAsync(Guid tripId)
     {
-        if (_tripService.FindTripById(tripId) is null)
+        if (await _tripService.FindTripByIdAsync(tripId) is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        var history = _versionService.GetHistory(tripId).Select(v => new
+        var history = _versionService.GetHistory(tripId).Select(version => new
         {
-            v.VersionNumber,
-            v.Timestamp,
-            v.ChangedBy,
-            v.RestoredFromVersion
+            version.VersionNumber,
+            version.Timestamp,
+            version.ChangedBy,
+            version.RestoredFromVersion
         }).ToList();
 
         return Ok(history);
     }
 
     [HttpPost("{tripId}/restore/{versionNumber}")]
-    public IActionResult Restore(
+    public async Task<IActionResult> RestoreAsync(
         Guid tripId,
         int versionNumber,
         [FromQuery] string changedBy = "unknown")
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
+        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
+
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -104,7 +116,7 @@ public class PlanController : ControllerBase
         try
         {
             var version = _planService.RestoreVersion(trip, versionNumber, changedBy);
-            _tripService.SaveChanges();
+            await _tripService.SaveChangesAsync();
 
             return Ok(new
             {
@@ -117,6 +129,10 @@ public class PlanController : ControllerBase
         catch (ArgumentException)
         {
             return NotFound(new { error = "Version not found" });
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
         }
     }
 }

@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Service;
-using TravelPlanner.Requests;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
+using TravelPlanner.Requests;
 using TravelPlanner.Responses;
+using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers;
 
@@ -13,34 +13,24 @@ namespace TravelPlanner.Controllers;
 public class ActivityController : ControllerBase
 {
     private readonly TripService _tripService;
-    private readonly ActivityService _activityService;
+    private readonly ActivityManagementService _activityManagementService;
     private readonly ActivityVotingService _activityVotingService;
-    private readonly ActivityImportService _activityImportService;
 
     public ActivityController(
         TripService tripService,
-        ActivityService activityService,
-        ActivityVotingService activityVotingService,
-        ActivityImportService activityImportService)
+        ActivityManagementService activityManagementService,
+        ActivityVotingService activityVotingService)
     {
         _tripService = tripService;
-        _activityService = activityService;
+        _activityManagementService = activityManagementService;
         _activityVotingService = activityVotingService;
-        _activityImportService = activityImportService;
     }
 
     [HttpPost]
-    public IActionResult Add(
+    public async Task<IActionResult> AddAsync(
         Guid tripId,
         [FromBody] AddActivityRequest request)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip is null)
-        {
-            return NotFound("Trip not found.");
-        }
-
         if (!Enum.TryParse<Category>(request.Category, true, out var category)
             || !Enum.IsDefined(category))
         {
@@ -57,8 +47,8 @@ public class ActivityController : ControllerBase
             var location = new GeoLocation(request.Latitude, request.Longitude);
             var duration = TimeSpan.FromHours(request.DurationHours);
 
-            var activity = _activityService.AddActivity(
-                trip,
+            var activity = await _activityManagementService.AddActivityAsync(
+                tripId,
                 request.Name,
                 category,
                 location,
@@ -68,7 +58,11 @@ public class ActivityController : ControllerBase
                 request.OpeningTime,
                 request.ClosingTime);
 
-            _tripService.SaveChanges();
+            if (activity is null)
+            {
+                return NotFound("Trip not found.");
+            }
+
             return Ok(ToActivityResponse(activity));
         }
         catch (ArgumentException ex)
@@ -82,36 +76,34 @@ public class ActivityController : ControllerBase
     }
 
     [HttpPost("import")]
-    public IActionResult Import(
+    public async Task<IActionResult> ImportAsync(
         Guid tripId,
         IFormFile file)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip is null)
-        {
-            return NotFound("Trip not found.");
-        }
-
-        if (file.Length == 0)
-        {
-            return BadRequest("File is empty.");
-        }
-
         try
         {
-            using Stream stream = file.OpenReadStream();
+            if (file.Length == 0)
+            {
+                return BadRequest("File is empty.");
+            }
 
-            var activities = _activityImportService.LoadActivitiesFromJson(stream);
+            await using Stream stream = file.OpenReadStream();
+
+            var activities = await _activityManagementService
+                .ImportActivitiesAsync(tripId, stream);
+
+            if (activities is null)
+            {
+                return NotFound("Trip not found.");
+            }
+
             var responses = new List<ActivityResponse>();
 
             foreach (var activity in activities)
             {
-                trip.Activities.Add(activity);
                 responses.Add(ToActivityResponse(activity));
             }
 
-            _tripService.SaveChanges();
             return Ok(responses);
         }
         catch (JsonException)
@@ -129,11 +121,11 @@ public class ActivityController : ControllerBase
     }
 
     [HttpGet("prioritized")]
-    public IActionResult GetPrioritizedActivities(Guid tripId)
+    public async Task<IActionResult> GetPrioritizedActivitiesAsync(Guid tripId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
 
-        if (trip == null)
+        if (trip is null)
         {
             return NotFound("Trip not found.");
         }
@@ -150,12 +142,12 @@ public class ActivityController : ControllerBase
     }
 
     [HttpGet("selected")]
-    public IActionResult GetSelectedActivities(
+    public async Task<IActionResult> GetSelectedActivitiesAsync(
         Guid tripId,
         [FromQuery] decimal? budget,
         [FromQuery] double? hours)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
 
         if (trip is null)
         {
