@@ -1,6 +1,6 @@
-using TravelPlanner.Service;
 using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Data;
+using TravelPlanner.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +23,7 @@ builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<ActivityService>();
+builder.Services.AddScoped<ActivityManagementService>();
 builder.Services.AddScoped<ActivitySchedulingService>();
 builder.Services.AddScoped<ActivityVotingService>();
 builder.Services.AddScoped<BudgetService>();

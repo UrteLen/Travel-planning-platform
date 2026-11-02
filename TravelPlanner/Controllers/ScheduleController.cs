@@ -10,27 +10,23 @@ public class ScheduleController : ControllerBase
 {
     private readonly TripService _tripService;
     private readonly ActivitySchedulingService _activitySchedulingService;
+    private readonly ActivityManagementService _activityManagementService;
 
     public ScheduleController(
         TripService tripService,
-        ActivitySchedulingService activitySchedulingService)
+        ActivitySchedulingService activitySchedulingService,
+        ActivityManagementService activityManagementService)
     {
         _tripService = tripService;
         _activitySchedulingService = activitySchedulingService;
+        _activityManagementService = activityManagementService;
     }
 
     [HttpPost]
-    public IActionResult ScheduleActivity(
+    public async Task<IActionResult> ScheduleActivityAsync(
         Guid tripId,
         [FromBody] ScheduleActivityRequest request)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip == null)
-        {
-            return NotFound();
-        }
-
         if (request.ActivityId == Guid.Empty ||
             request.StartTime == default ||
             !double.IsFinite(request.SpeedKmh) ||
@@ -39,24 +35,19 @@ public class ScheduleController : ControllerBase
             return BadRequest("Valid ActivityId, StartTime and positive SpeedKmh are required.");
         }
 
-        var activity = trip.Activities
-            .FirstOrDefault(candidate => candidate.Id == request.ActivityId);
-
-        if (activity == null)
-        {
-            return NotFound();
-        }
-
         try
         {
-            var scheduledActivity = _activitySchedulingService.ScheduleActivity(
-                trip,
-                activity,
+            var scheduledActivity = await _activityManagementService.ScheduleActivityAsync(
+                tripId,
+                request.ActivityId,
                 DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
                 request.SpeedKmh);
 
-            _tripService.SaveChanges();
             return Ok(scheduledActivity);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (InvalidOperationException ex)
         {
@@ -74,13 +65,13 @@ public class ScheduleController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetDailySchedule(
+    public async Task<IActionResult> GetDailyScheduleAsync(
         Guid tripId,
         [FromQuery] DateTime? date)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
 
-        if (trip == null)
+        if (trip is null)
         {
             return NotFound();
         }
@@ -97,49 +88,38 @@ public class ScheduleController : ControllerBase
     }
 
     [HttpDelete("{scheduledActivityId}")]
-    public IActionResult RemoveScheduledActivity(
+    public async Task<IActionResult> RemoveScheduledActivityAsync(
         Guid tripId,
         Guid scheduledActivityId)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip == null)
+        try
         {
-            return NotFound("Trip not found.");
-        }
+            await _activityManagementService.RemoveScheduledActivityAsync(
+                tripId, scheduledActivityId);
 
-        if (!_activitySchedulingService.RemoveScheduledActivity(trip, scheduledActivityId))
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
         {
-            return NotFound("Scheduled activity not found.");
+            return NotFound(ex.Message);
         }
-
-        _tripService.SaveChanges();
-        return NoContent();
     }
 
     [HttpPut("{scheduledActivityId}")]
-    public IActionResult UpdateScheduledActivity(
+    public async Task<IActionResult> UpdateScheduledActivityAsync(
         Guid tripId,
         Guid scheduledActivityId,
         [FromBody] UpdateScheduledActivityRequest request)
     {
-        var trip = _tripService.FindTripByIdForUpdate(tripId);
-
-        if (trip == null)
-        {
-            return NotFound("Trip not found.");
-        }
-
         try
         {
-            var updatedActivity = _activitySchedulingService.UpdateScheduledActivity(
-                trip,
+            var scheduledActivity = await _activityManagementService.UpdateScheduledActivityAsync(
+                tripId,
                 scheduledActivityId,
                 DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
                 request.SpeedKmh);
 
-            _tripService.SaveChanges();
-            return Ok(updatedActivity);
+            return Ok(scheduledActivity);
         }
         catch (KeyNotFoundException ex)
         {

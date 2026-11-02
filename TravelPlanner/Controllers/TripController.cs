@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using TravelPlanner.Enums;
 using TravelPlanner.Models;
-using TravelPlanner.Service;
 using TravelPlanner.Requests;
 using TravelPlanner.Responses;
-using TravelPlanner.Enums;
+using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers;
 
@@ -18,7 +18,7 @@ public class TripController : ControllerBase
     }
 
     [HttpPost("create")]
-    public IActionResult Create(CreateTripRequest request)
+    public async Task<IActionResult> CreateAsync(CreateTripRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Destination) || string.IsNullOrWhiteSpace(request.OrganizerName))
         {
@@ -35,7 +35,7 @@ public class TripController : ControllerBase
             return BadRequest(new { error = "Start date cannot be in the past" });
         }
 
-        var trip = _tripService.CreateTrip(
+        var trip = await _tripService.CreateTripAsync(
             request.Name,
             request.Destination,
             request.StartDate,
@@ -46,9 +46,9 @@ public class TripController : ControllerBase
     }
 
     [HttpGet("{tripId:guid}")]
-    public IActionResult Get(Guid tripId)
+    public async Task<IActionResult> GetAsync(Guid tripId)
     {
-        var trip = _tripService.FindTripById(tripId);
+        var trip = await _tripService.FindTripByIdAsync(tripId);
         if (trip is null)
         {
             return NotFound(new { error = "Trip not found" });
@@ -58,9 +58,9 @@ public class TripController : ControllerBase
     }
 
     [HttpPost("join")]
-    public IActionResult Join(JoinTripRequest request)
+    public async Task<IActionResult> JoinAsync(JoinTripRequest request)
     {
-        var trip = _tripService.JoinTrip(request.InviteCode, request.ParticipantName, role: UserRole.Participant);
+        var trip = await _tripService.JoinTripAsync(request.InviteCode, request.ParticipantName, role: UserRole.Participant);
 
         if (trip is null)
         {
