@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using TravelPlanner.Data;
 using TravelPlanner.Models;
@@ -13,45 +14,47 @@ public class TripVersionService
         _db = db;
     }
 
-    public TripVersion SaveVersion(Guid tripId, Budget budget, List<PlannedVisit> plan, List<TripActivity> activities, string changedBy)
+    public Task<TripVersion> SaveVersionAsync(Guid tripId, Budget budget, List<PlannedVisit> plan, List<TripActivity> activities, string changedBy)
     {
-        return AddVersion(tripId, budget, plan, activities, changedBy, restoredFromVersion: null);
+        return AddVersionAsync(tripId, budget, plan, activities, changedBy, restoredFromVersion: null);
     }
 
-    public List<TripVersion> GetHistory(Guid tripId)
+    public async Task<List<TripVersion>> GetHistoryAsync(Guid tripId)
     {
-        return _db.TripVersions
+        var stored = await _db.TripVersions
             .Where(v => v.TripId == tripId)
             .OrderBy(v => v.VersionNumber)
-            .AsEnumerable()
-            .Select(ToTripVersion)
-            .ToList();
+            .ToListAsync();
+
+        return stored.Select(ToTripVersion).ToList();
     }
 
-    public TripVersion? GetVersion(Guid tripId, int versionNumber)
+    public async Task<TripVersion?> GetVersionAsync(Guid tripId, int versionNumber)
     {
-        var stored = _db.TripVersions
-            .FirstOrDefault(v => v.TripId == tripId && v.VersionNumber == versionNumber);
+        var stored = await _db.TripVersions
+            .FirstOrDefaultAsync(v => v.TripId == tripId && v.VersionNumber == versionNumber);
 
         return stored is null ? null : ToTripVersion(stored);
     }
 
-    public TripVersion Restore(Guid tripId, int versionNumber, string changedBy)
+    public async Task<TripVersion> RestoreAsync(Guid tripId, int versionNumber, string changedBy)
     {
-        var restored = GetVersion(tripId, versionNumber)
+        var restored = await GetVersionAsync(tripId, versionNumber)
             ?? throw new ArgumentException("Version not found");
 
-        return AddVersion(tripId, restored.BudgetSnapshot, restored.PlanSnapshot,
+        return await AddVersionAsync(tripId, restored.BudgetSnapshot, restored.PlanSnapshot,
             restored.ActivitiesSnapshot, changedBy, versionNumber);
     }
 
-    private TripVersion AddVersion(Guid tripId, Budget budget, List<PlannedVisit> plan,
+    private async Task<TripVersion> AddVersionAsync(Guid tripId, Budget budget, List<PlannedVisit> plan,
         List<TripActivity> activities, string changedBy, int? restoredFromVersion)
     {
+        int versionNumber = await _db.TripVersions.CountAsync(v => v.TripId == tripId) + 1;
+
         var stored = new StoredTripVersion
         {
             TripId = tripId,
-            VersionNumber = _db.TripVersions.Count(v => v.TripId == tripId) + 1,
+            VersionNumber = versionNumber,
             Timestamp = DateTime.UtcNow,
             ChangedBy = changedBy,
             RestoredFromVersion = restoredFromVersion,

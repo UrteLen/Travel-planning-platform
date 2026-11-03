@@ -52,7 +52,7 @@ public class PlanController : ControllerBase
                 return BadRequest(new { error = "Invalid start coordinates" });
             }
 
-            var plan = _planService.GeneratePlan(
+            var plan = await _planService.GeneratePlanAsync(
                 trip,
                 start,
                 DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
@@ -89,7 +89,8 @@ public class PlanController : ControllerBase
             return NotFound(new { error = "Trip not found" });
         }
 
-        var history = _versionService.GetHistory(tripId).Select(version => new
+        var versions = await _versionService.GetHistoryAsync(tripId);
+        var history = versions.Select(version => new
         {
             version.VersionNumber,
             version.Timestamp,
@@ -115,7 +116,7 @@ public class PlanController : ControllerBase
 
         try
         {
-            var version = _planService.RestoreVersion(trip, versionNumber, changedBy);
+            var version = await _planService.RestoreVersionAsync(trip, versionNumber, changedBy);
             await _tripService.SaveChangesAsync();
 
             return Ok(new

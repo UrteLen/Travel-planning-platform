@@ -68,7 +68,7 @@ public class BudgetController : ControllerBase
                 trip.Budget.CategoryLimits[pair.Key] = pair.Value;
             }
 
-            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+            await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
             await _tripService.SaveChangesAsync();
             return Ok(new { message = "Budget limits set" });
         }
@@ -108,7 +108,7 @@ public class BudgetController : ControllerBase
             }
 
             trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.UtcNow, participant));
-            _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
+            await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
             await _tripService.SaveChangesAsync();
             return Ok(new { message = "Expense added" });
         }
