@@ -17,18 +17,18 @@ public class PlanService
         _versionService = versionService;
     }
 
-    public List<PlannedVisit> GeneratePlan(Trip trip, GeoLocation start, DateTime startTime, double speedKmh, string changedBy)
+    public async Task<List<PlannedVisit>> GeneratePlanAsync(Trip trip, GeoLocation start, DateTime startTime, double speedKmh, string changedBy)
     {
         var places = trip.Activities.Select(ToPlace).ToList();
         trip.Plan = _dayPlanningService.DayPlan(places, start, startTime, speedKmh);
-        _versionService.SaveVersion(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
+        await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
 
         return trip.Plan;
     }
 
-    public TripVersion RestoreVersion(Trip trip, int versionNumber, string changedBy)
+    public async Task<TripVersion> RestoreVersionAsync(Trip trip, int versionNumber, string changedBy)
     {
-        var version = _versionService.Restore(trip.Id, versionNumber, changedBy);
+        var version = await _versionService.RestoreAsync(trip.Id, versionNumber, changedBy);
 
         trip.Plan = version.PlanSnapshot
             .Select(visit => new PlannedVisit(visit.Place.Clone(), visit.ArrivalTime, visit.DepartureTime))
