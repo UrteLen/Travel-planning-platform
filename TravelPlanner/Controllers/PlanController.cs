@@ -127,10 +127,6 @@ public class PlanController : ControllerBase
                 version.RestoredFromVersion
             });
         }
-        catch (ArgumentException)
-        {
-            return NotFound(new { error = "Version not found" });
-        }
         finally
         {
             await _tripService.RollbackTransactionAsync();

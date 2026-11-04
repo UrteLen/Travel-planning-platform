@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Data;
+using TravelPlanner.Exceptions;
 using TravelPlanner.Service;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +20,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(
         new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
+builder.Services.AddExceptionHandler<VersionNotFoundExceptionHandler>();
 
 builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
@@ -40,20 +44,34 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-if (!app.Environment.IsDevelopment())
+app.UseExceptionHandler(errorApp =>
 {
-    app.UseExceptionHandler(errorApp =>
+    errorApp.Run(async context =>
     {
-        errorApp.Run(async context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
+        if (app.Environment.IsDevelopment())
+        {
+            var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "An unexpected server error occurred.",
+                detail = exception?.ToString()
+            });
+        }
+        else
+        {
             await context.Response.WriteAsJsonAsync(new
             {
                 error = "An unexpected server error occurred."
             });
-        });
+        }
     });
+});
+
+if (!app.Environment.IsDevelopment())
+{
     app.UseHsts();
 }
 // app.UseHttpsRedirection();

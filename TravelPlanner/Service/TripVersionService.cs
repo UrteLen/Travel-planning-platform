@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using TravelPlanner.Data;
 using TravelPlanner.Models;
+using TravelPlanner.Exceptions;
 
 namespace TravelPlanner.Service;
 
@@ -40,7 +41,7 @@ public class TripVersionService
     public async Task<TripVersion> RestoreAsync(Guid tripId, int versionNumber, string changedBy)
     {
         var restored = await GetVersionAsync(tripId, versionNumber)
-            ?? throw new ArgumentException("Version not found");
+            ?? throw new VersionNotFoundException(tripId, versionNumber);
 
         return await AddVersionAsync(tripId, restored.BudgetSnapshot, restored.PlanSnapshot,
             restored.ActivitiesSnapshot, changedBy, versionNumber);
