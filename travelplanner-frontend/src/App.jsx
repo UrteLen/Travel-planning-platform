@@ -8,10 +8,12 @@ import BudgetAlerts from './components/BudgetAlerts';
 import SettlementsPanel from './components/SettlementsPanel';
 import { readError } from './apiError';
 import HelpTip from './components/HelpTip';
-
+import AuthPanel from './components/AuthPanel';
+import { getAuth, saveAuth, clearAuth, installAuthFetch } from './auth';
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
   : 'https://localhost:7157/api';
+installAuthFetch(API_BASE);
 
 export default function App() {
   const [currentTrip, setCurrentTrip] = useState(null);
@@ -36,7 +38,13 @@ export default function App() {
   const [planResult, setPlanResult] = useState([]);
 
   const requestIdRef = useRef(0);
+  const [auth, setAuthState] = useState(getAuth());
 
+  function logout() {
+    clearAuth();
+    setAuthState(null);
+    setCurrentTrip(null);
+  }
   const today = new Date().toLocaleDateString('en-CA');
 
   function handleTripLoaded(tripData, preferredParticipantName = '') {
@@ -88,7 +96,7 @@ export default function App() {
     e.preventDefault();
     const name = createForm.name.trim();
     const destination = createForm.destination.trim();
-    const organizerName = createForm.organizerName.trim();
+    const organizerName = auth.displayName;
 
     if (!name || !destination || !organizerName || !createForm.startDate || !createForm.endDate) {
       setErrorMessage('Please fill out all required trip fields.');
@@ -125,7 +133,7 @@ export default function App() {
   async function handleJoinTrip(e) {
     e.preventDefault();
     const inviteCode = joinForm.inviteCode.trim();
-    const participantName = joinForm.participantName.trim();
+    const participantName = auth.displayName;
 
     if (!inviteCode || inviteCode.length < 3) {
       setErrorMessage('Please provide a valid invite code.');
@@ -386,13 +394,15 @@ async function handleGeneratePlan(e) {
   const totalSpent = summary?.totalSpent ?? 0;
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
   const costPerPerson = summary?.costPerPerson ?? 0;
-
+  if (!auth) {
+    return <AuthPanel apiBase={API_BASE} onAuth={a => { saveAuth(a); setAuthState(a); }} />;
+  }
   if (!currentTrip) {
     return (
       <div className="container">
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
-
+        <p className="trip-meta">Signed in as <strong>{auth.displayName}</strong> <button onClick={logout} className="btn-secondary">Log out</button></p>
            {errorMessage && (
      <div className={`error-banner ${errorMessage.startsWith('Warning') ? 'is-warning' : ''}`} role="alert">
        {errorMessage}
@@ -405,7 +415,6 @@ async function handleGeneratePlan(e) {
             <label className="form-field">Destination<input  value={createForm.destination} onChange={e => setCreateForm({...createForm, destination: e.target.value})} required /></label>
             <label className="form-field">Start Date<input type="date" min={today} max="2100-12-31" value={createForm.startDate} onChange={e => setCreateForm({...createForm, startDate: e.target.value})} required /></label>
             <label className="form-field">End Date<input type="date" min={createForm.startDate || today} max="2100-12-31" value={createForm.endDate} onChange={e => setCreateForm({...createForm, endDate: e.target.value})} required /></label>
-            <label className="form-field">Your Name (Organizer)<input  value={createForm.organizerName} onChange={e => setCreateForm({...createForm, organizerName: e.target.value})} required /></label>
             <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Trip'}</button>
           </form>
         </div>
@@ -414,7 +423,6 @@ async function handleGeneratePlan(e) {
           <h2>Join Existing Trip</h2>
           <form onSubmit={handleJoinTrip} className="form-grid">
             <label className="form-field">Invite Code (6 characters)<input  value={joinForm.inviteCode} onChange={e => setJoinForm({...joinForm, inviteCode: e.target.value})} required /></label>
-            <label className="form-field">Your Name<input  value={joinForm.participantName} onChange={e => setJoinForm({...joinForm, participantName: e.target.value})} required /></label>
             <button type="submit" className="btn-secondary" disabled={loading}>{loading ? 'Joining...' : 'Join Trip'}</button>
           </form>
         </div>
@@ -431,7 +439,11 @@ async function handleGeneratePlan(e) {
           <h1>{currentTrip.name}</h1>
           <p className="trip-meta">Destination: <strong>{currentTrip.destination}</strong> | Invite Code: <span className="code-badge">{currentTrip.inviteCode}</span></p>
         </div>
-        <button onClick={() => setCurrentTrip(null)} className="btn-secondary">Switch Trip</button>
+          <div>
+            <span className="trip-meta">Signed in as <strong>{auth.displayName}</strong></span>{' '}
+            <button onClick={() => setCurrentTrip(null)} className="btn-secondary">Switch Trip</button>{' '}
+            <button onClick={logout} className="btn-secondary">Log out</button>
+          </div>
       </div>
 
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
