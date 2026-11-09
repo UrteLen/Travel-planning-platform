@@ -28,44 +28,25 @@ public class PlanController : ControllerBase
         Guid tripId,
         [FromBody] GeneratePlanRequest request)
     {
-        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
+        var (plan, validationError) = await _planService.GeneratePlanAsync(
+            tripId,
+            request.StartLatitude,
+            request.StartLongitude,
+            request.StartTime,
+            request.SpeedKmh,
+            request.ChangedBy);
 
-        if (trip is null)
+        if (validationError is not null)
+        {
+            return BadRequest(new { error = validationError });
+        }
+
+        if (plan is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        try
-        {
-            if (request.SpeedKmh <= 0)
-            {
-                return BadRequest(new { error = "Speed must be positive" });
-            }
-
-            GeoLocation start;
-            try
-            {
-                start = new GeoLocation(request.StartLatitude, request.StartLongitude);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return BadRequest(new { error = "Invalid start coordinates" });
-            }
-
-            var plan = await _planService.GeneratePlanAsync(
-                trip,
-                start,
-                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
-                request.SpeedKmh,
-                request.ChangedBy);
-
-            await _tripService.SaveChangesAsync();
-            return Ok(PlanService.ToResponseList(plan));
-        }
-        finally
-        {
-            await _tripService.RollbackTransactionAsync();
-        }
+        return Ok(PlanService.ToResponseList(plan));
     }
 
     [HttpGet("{tripId}")]

@@ -6,24 +6,73 @@ namespace TravelPlanner.Service;
 
 public class PlanService
 {
+    private readonly TripService _tripService;
     private readonly DayPlanningService _dayPlanningService;
     private readonly TripVersionService _versionService;
 
     public PlanService(
+        TripService tripService,
         DayPlanningService dayPlanningService,
         TripVersionService versionService)
     {
+        _tripService = tripService;
         _dayPlanningService = dayPlanningService;
         _versionService = versionService;
     }
 
-    public async Task<List<PlannedVisit>> GeneratePlanAsync(Trip trip, GeoLocation start, DateTime startTime, double speedKmh, string changedBy)
+    public async Task<(List<PlannedVisit>? Plan, string? ValidationError)> GeneratePlanAsync(
+        Guid tripId,
+        double startLatitude,
+        double startLongitude,
+        DateTime startTime,
+        double speedKmh,
+        string changedBy)
     {
-        var places = trip.Activities.Select(ToPlace).ToList();
-        trip.Plan = _dayPlanningService.DayPlan(places, start, startTime, speedKmh);
-        await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
+        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
 
-        return trip.Plan;
+        if (trip is null)
+        {
+            return (null, null);
+        }
+
+        try
+        {
+            if (speedKmh <= 0)
+            {
+                return (null, "Speed must be positive");
+            }
+
+            GeoLocation start;
+            try
+            {
+                start = new GeoLocation(startLatitude, startLongitude);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return (null, "Invalid start coordinates");
+            }
+
+            var places = trip.Activities.Select(ToPlace).ToList();
+            trip.Plan = _dayPlanningService.DayPlan(
+                places,
+                start,
+                DateTime.SpecifyKind(startTime, DateTimeKind.Unspecified),
+                speedKmh);
+
+            await _versionService.SaveVersionAsync(
+                trip.Id,
+                trip.Budget,
+                trip.Plan,
+                trip.Activities,
+                changedBy);
+            await _tripService.SaveChangesAsync();
+
+            return (trip.Plan, null);
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
+        }
     }
 
     public async Task<TripVersion> RestoreVersionAsync(Trip trip, int versionNumber, string changedBy)
