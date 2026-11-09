@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Models;
 using TravelPlanner.Requests;
 using TravelPlanner.Service;
 
@@ -9,16 +8,13 @@ namespace TravelPlanner.Controllers;
 [Route("api/[controller]")]
 public class PlanController : ControllerBase
 {
-    private readonly TripService _tripService;
     private readonly PlanService _planService;
     private readonly TripVersionService _versionService;
 
     public PlanController(
-        TripService tripService,
         PlanService planService,
         TripVersionService versionService)
     {
-        _tripService = tripService;
         _planService = planService;
         _versionService = versionService;
     }
@@ -52,14 +48,14 @@ public class PlanController : ControllerBase
     [HttpGet("{tripId}")]
     public async Task<IActionResult> GetAsync(Guid tripId)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
+        var plan = await _planService.GetPlanAsync(tripId);
 
-        if (trip is null)
+        if (plan is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        return Ok(PlanService.ToResponseList(trip.Plan));
+        return Ok(plan);
     }
 
     [HttpGet("{tripId}/history")]

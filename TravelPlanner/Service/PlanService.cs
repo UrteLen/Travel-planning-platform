@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using TravelPlanner.Data;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
@@ -9,15 +11,18 @@ public class PlanService
     private readonly TripService _tripService;
     private readonly DayPlanningService _dayPlanningService;
     private readonly TripVersionService _versionService;
+    private readonly TravelPlannerDbContext _db;
 
     public PlanService(
         TripService tripService,
         DayPlanningService dayPlanningService,
-        TripVersionService versionService)
+        TripVersionService versionService,
+        TravelPlannerDbContext db)
     {
         _tripService = tripService;
         _dayPlanningService = dayPlanningService;
         _versionService = versionService;
+        _db = db;
     }
 
     public async Task<(List<PlannedVisit>? Plan, string? ValidationError)> GeneratePlanAsync(
@@ -73,6 +78,21 @@ public class PlanService
         {
             await _tripService.RollbackTransactionAsync();
         }
+    }
+
+    public async Task<List<PlannedVisitResponse>?> GetPlanAsync(Guid tripId)
+    {
+        return await _db.Trips
+            .Where(trip => trip.Id == tripId)
+            .Select(trip => trip.Plan
+                .OrderBy(visit => visit.ArrivalTime)
+                .ThenBy(visit => visit.DepartureTime)
+                .Select(visit => new PlannedVisitResponse(
+                    visit.Place.Name,
+                    visit.ArrivalTime,
+                    visit.DepartureTime))
+                .ToList())
+            .SingleOrDefaultAsync();
     }
 
     public async Task<TripVersion?> RestoreVersionAsync(
