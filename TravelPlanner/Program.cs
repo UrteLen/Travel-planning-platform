@@ -3,6 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Data;
 using TravelPlanner.Exceptions;
 using TravelPlanner.Service;
+using TravelPlanner.Models;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,7 +45,26 @@ builder.Services.AddScoped<TripVersionService>();
 builder.Services.AddSingleton<VisitScheduler>();
 builder.Services.AddScoped<DayPlanningService>();
 builder.Services.AddScoped<PlanService>();
-
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddExceptionHandler<AuthExceptionHandler>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "TravelPlanner",
+            ValidateAudience = true,
+            ValidAudience = "TravelPlanner",
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
 var app = builder.Build();
 
 app.UseCors("AllowAll");
@@ -77,6 +102,7 @@ if (!app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
