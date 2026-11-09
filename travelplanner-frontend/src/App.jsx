@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './App.css';
 import ActivitiesPanel from './components/ActivitiesPanel';
 import CalendarPanel from './components/CalendarPanel';
@@ -8,10 +8,12 @@ import BudgetAlerts from './components/BudgetAlerts';
 import SettlementsPanel from './components/SettlementsPanel';
 import { readError } from './apiError';
 import HelpTip from './components/HelpTip';
-
+import AuthPanel from './components/AuthPanel';
+import { getAuth, saveAuth, clearAuth, installAuthFetch } from './auth';
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
   : 'https://localhost:7157/api';
+installAuthFetch(API_BASE);
 
 export default function App() {
   const [currentTrip, setCurrentTrip] = useState(null);
@@ -35,8 +37,33 @@ export default function App() {
   const [planForm, setPlanForm] = useState({ startLat: '54.6872', startLon: '25.2797', startTime: '', speedKmh: '40', changedBy: 'Organizer' });
   const [planResult, setPlanResult] = useState([]);
 
+  const sessionRef = useRef(0);
   const requestIdRef = useRef(0);
+  const [auth, setAuthState] = useState(getAuth());
+    const [authChecked, setAuthChecked] = useState(() => !getAuth());
 
+  useEffect(() => {
+    if (authChecked) return;
+    let cancelled = false;
+    fetch(`${API_BASE}/auth/me`)
+      .then(res => {
+        if (cancelled) return;
+        if (res.status === 401) {
+          clearAuth();
+          setAuthState(null);
+        }
+      })
+      .catch(() => { /* network error: keep the session, do not log out */ })
+      .finally(() => { if (!cancelled) setAuthChecked(true); });
+    return () => { cancelled = true; };
+  }, []);
+    function logout() {
+      sessionRef.current += 1;
+      requestIdRef.current += 1;
+      clearAuth();
+      setAuthState(null);
+      setCurrentTrip(null);
+    }
   const today = new Date().toLocaleDateString('en-CA');
 
   function handleTripLoaded(tripData, preferredParticipantName = '') {
@@ -70,25 +97,28 @@ export default function App() {
       fetchTripDetails(tripData.id, tripData.inviteCode);
     }
   }
-    async function handleVersionRestored() {
-      if (!currentTrip?.id) return;
+    async function handleVersionRestored(session) {
+      if (!currentTrip?.id || session !== sessionRef.current) return;
       try {
         const res = await fetch(`${API_BASE}/trip/${currentTrip.id}`);
         if (!res.ok) throw new Error(await readError(res));
         const freshTrip = await res.json();
+        if (session !== sessionRef.current) return;
         setCategoryLimits({ Food: '', Transport: '', Activities: '', Accommodation: '' });
         handleTripLoaded(freshTrip);
       } catch (err) {
-        setErrorMessage('Failed to reload the restored trip: ' + err.message);
+        if (session === sessionRef.current) {
+          setErrorMessage('Failed to reload the restored trip: ' + err.message);
+        }
       }
-      setActiveTab('overview');
+      if (session === sessionRef.current) setActiveTab('overview');
     }
 
   async function handleCreateTrip(e) {
     e.preventDefault();
     const name = createForm.name.trim();
     const destination = createForm.destination.trim();
-    const organizerName = createForm.organizerName.trim();
+    const organizerName = auth.displayName;
 
     if (!name || !destination || !organizerName || !createForm.startDate || !createForm.endDate) {
       setErrorMessage('Please fill out all required trip fields.');
@@ -102,6 +132,7 @@ export default function App() {
       return;
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -113,10 +144,11 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
+      if (session !== sessionRef.current) return;
       handleTripLoaded(data, organizerName);
       setCreateForm({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -125,7 +157,7 @@ export default function App() {
   async function handleJoinTrip(e) {
     e.preventDefault();
     const inviteCode = joinForm.inviteCode.trim();
-    const participantName = joinForm.participantName.trim();
+    const participantName = auth.displayName;
 
     if (!inviteCode || inviteCode.length < 3) {
       setErrorMessage('Please provide a valid invite code.');
@@ -136,6 +168,7 @@ export default function App() {
       return;
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -147,10 +180,11 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
+      if (session !== sessionRef.current) return;
       handleTripLoaded(data, participantName);
       setJoinForm({ inviteCode: '', participantName: '' });
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -213,6 +247,7 @@ export default function App() {
   const limitMissing = Boolean(summary?.results) &&
     !summary.results.some(r => r.category === expenseForm.category);
 
+  const session = sessionRef.current;
   setLoading(true);
   setErrorMessage('');
 
@@ -228,6 +263,7 @@ export default function App() {
       })
     });
     if (!res.ok) throw new Error(await readError(res));
+    if (session !== sessionRef.current) return;
 
     const newExpense = {
       amount: amountNum,
@@ -252,7 +288,7 @@ export default function App() {
       setErrorMessage(`Warning: the expense was saved, but ${expenseForm.category} has no limit set, so it will not show in the budget status. Set a limit on the Categories tab.`);
     }
   } catch (err) {
-    setErrorMessage(err.message);
+    if (session === sessionRef.current) setErrorMessage(err.message);
   } finally {
     setLoading(false);
   }
@@ -271,6 +307,7 @@ export default function App() {
       sanitizedLimits[cat] = Number(val);
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -284,10 +321,11 @@ export default function App() {
         })
       });
       if (!res.ok) throw new Error(await readError(res));
+      if (session !== sessionRef.current) return;
 
       await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -302,6 +340,7 @@ export default function App() {
       return;
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -316,10 +355,11 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
+      if (session !== sessionRef.current) return;
       handleTripLoaded(data);
       setNewParticipantName('');
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -350,6 +390,7 @@ async function handleGeneratePlan(e) {
     return;
   }
 
+  const session = sessionRef.current;
   setLoading(true);
   setErrorMessage('');
 
@@ -367,6 +408,7 @@ async function handleGeneratePlan(e) {
     });
     if (!res.ok) throw new Error(await readError(res));
     const data = await res.json();
+    if (session !== sessionRef.current) return;
     setPlanResult(data);
     await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
 
@@ -374,7 +416,7 @@ async function handleGeneratePlan(e) {
       setErrorMessage('Warning: no visits could be scheduled. Add activities first, or check their opening hours and the start time.');
     }
   } catch (err) {
-    setErrorMessage(err.message);
+    if (session === sessionRef.current) setErrorMessage(err.message);
   } finally {
     setLoading(false);
   }
@@ -386,13 +428,18 @@ async function handleGeneratePlan(e) {
   const totalSpent = summary?.totalSpent ?? 0;
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
   const costPerPerson = summary?.costPerPerson ?? 0;
-
+  if (!authChecked) {
+    return <div className="container"><p className="text-muted">Checking your session...</p></div>;
+  }
+  if (!auth) {
+        return <AuthPanel apiBase={API_BASE} onAuth={a => { sessionRef.current += 1; saveAuth(a); setAuthState(a); }} />;
+  }
   if (!currentTrip) {
     return (
       <div className="container">
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
-
+        <p className="trip-meta">Signed in as <strong>{auth.displayName}</strong> <button onClick={logout} className="btn-secondary">Log out</button></p>
            {errorMessage && (
      <div className={`error-banner ${errorMessage.startsWith('Warning') ? 'is-warning' : ''}`} role="alert">
        {errorMessage}
@@ -405,7 +452,6 @@ async function handleGeneratePlan(e) {
             <label className="form-field">Destination<input  value={createForm.destination} onChange={e => setCreateForm({...createForm, destination: e.target.value})} required /></label>
             <label className="form-field">Start Date<input type="date" min={today} max="2100-12-31" value={createForm.startDate} onChange={e => setCreateForm({...createForm, startDate: e.target.value})} required /></label>
             <label className="form-field">End Date<input type="date" min={createForm.startDate || today} max="2100-12-31" value={createForm.endDate} onChange={e => setCreateForm({...createForm, endDate: e.target.value})} required /></label>
-            <label className="form-field">Your Name (Organizer)<input  value={createForm.organizerName} onChange={e => setCreateForm({...createForm, organizerName: e.target.value})} required /></label>
             <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Trip'}</button>
           </form>
         </div>
@@ -414,7 +460,6 @@ async function handleGeneratePlan(e) {
           <h2>Join Existing Trip</h2>
           <form onSubmit={handleJoinTrip} className="form-grid">
             <label className="form-field">Invite Code (6 characters)<input  value={joinForm.inviteCode} onChange={e => setJoinForm({...joinForm, inviteCode: e.target.value})} required /></label>
-            <label className="form-field">Your Name<input  value={joinForm.participantName} onChange={e => setJoinForm({...joinForm, participantName: e.target.value})} required /></label>
             <button type="submit" className="btn-secondary" disabled={loading}>{loading ? 'Joining...' : 'Join Trip'}</button>
           </form>
         </div>
@@ -431,7 +476,11 @@ async function handleGeneratePlan(e) {
           <h1>{currentTrip.name}</h1>
           <p className="trip-meta">Destination: <strong>{currentTrip.destination}</strong> | Invite Code: <span className="code-badge">{currentTrip.inviteCode}</span></p>
         </div>
-        <button onClick={() => setCurrentTrip(null)} className="btn-secondary">Switch Trip</button>
+          <div>
+            <span className="trip-meta">Signed in as <strong>{auth.displayName}</strong></span>{' '}
+            <button onClick={() => setCurrentTrip(null)} className="btn-secondary">Switch Trip</button>{' '}
+            <button onClick={logout} className="btn-secondary">Log out</button>
+          </div>
       </div>
 
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
@@ -703,6 +752,7 @@ async function handleGeneratePlan(e) {
             tripId={currentTrip.id}
             changedBy={participantsList.find(p => p.id === activeParticipantId)?.name || 'Organizer'}
             onRestored={handleVersionRestored}
+            getSession={() => sessionRef.current}
           />
         )}
 
