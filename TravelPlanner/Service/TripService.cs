@@ -19,12 +19,14 @@ public class TripService
         string destination,
         DateTime startDate,
         DateTime endDate,
-        string organizerName)
+        string organizerName,
+        Guid? userId = null)
     {
         var organizer = new Participant
         {
             Name = organizerName,
-            Role = UserRole.Organizer
+            Role = UserRole.Organizer,
+            UserId = userId
         };
 
         var trip = new Trip
@@ -45,7 +47,8 @@ public class TripService
     public async Task<Trip?> JoinTripAsync(
         string inviteCode,
         string participantName,
-        UserRole role = UserRole.Participant)
+        UserRole role = UserRole.Participant,
+        Guid? userId = null)
     {
         var trip = await FindTripByCodeForUpdateAsync(inviteCode);
 
@@ -55,11 +58,16 @@ public class TripService
         }
 
         try
-        {
+        {   
+            if (userId is not null && trip.Participants.Any(p => p.UserId == userId))
+            {
+                return trip;
+            }
             var newParticipant = new Participant
             {
                 Name = participantName,
-                Role = role
+                Role = role,
+                UserId = userId
             };
 
             trip.Participants.Add(newParticipant);
@@ -83,10 +91,15 @@ public class TripService
         return await TripsWithDetails()
             .FirstOrDefaultAsync(trip => trip.Id == tripId);
     }
-
-    // Use these instead of FindTripBy... in any endpoint that changes the trip.
-    // They lock the trip's row until SaveChangesAsync, so two requests for the same trip
-    // run one after the other and neither overwrites the other's change.
+        public async Task<List<Trip>> FindTripsByUserAsync(Guid userId)
+    {
+        return await _db.Trips
+            .AsNoTracking()
+            .Include(trip => trip.Participants)
+            .Where(trip => trip.Participants.Any(p => p.UserId == userId))
+            .OrderByDescending(trip => trip.StartDate)
+            .ToListAsync();
+    }
     public async Task<Trip?> FindTripByIdForUpdateAsync(Guid tripId)
     {
         await _db.Database.BeginTransactionAsync();

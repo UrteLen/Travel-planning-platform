@@ -81,9 +81,14 @@ namespace TravelPlanner.Migrations
                     b.Property<Guid>("TripId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TripId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Participant");
                 });
@@ -346,6 +351,11 @@ namespace TravelPlanner.Migrations
                         .HasForeignKey("TripId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("TravelPlanner.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("TravelPlanner.Models.PlannedVisit", b =>
