@@ -99,16 +99,20 @@ export default function App() {
   }
     async function handleVersionRestored() {
       if (!currentTrip?.id) return;
+      const session = sessionRef.current;
       try {
         const res = await fetch(`${API_BASE}/trip/${currentTrip.id}`);
         if (!res.ok) throw new Error(await readError(res));
         const freshTrip = await res.json();
+        if (session !== sessionRef.current) return;
         setCategoryLimits({ Food: '', Transport: '', Activities: '', Accommodation: '' });
         handleTripLoaded(freshTrip);
       } catch (err) {
-        setErrorMessage('Failed to reload the restored trip: ' + err.message);
+        if (session === sessionRef.current) {
+          setErrorMessage('Failed to reload the restored trip: ' + err.message);
+        }
       }
-      setActiveTab('overview');
+      if (session === sessionRef.current) setActiveTab('overview');
     }
 
   async function handleCreateTrip(e) {
@@ -244,6 +248,7 @@ export default function App() {
   const limitMissing = Boolean(summary?.results) &&
     !summary.results.some(r => r.category === expenseForm.category);
 
+  const session = sessionRef.current;
   setLoading(true);
   setErrorMessage('');
 
@@ -259,6 +264,7 @@ export default function App() {
       })
     });
     if (!res.ok) throw new Error(await readError(res));
+    if (session !== sessionRef.current) return;
 
     const newExpense = {
       amount: amountNum,
@@ -283,7 +289,7 @@ export default function App() {
       setErrorMessage(`Warning: the expense was saved, but ${expenseForm.category} has no limit set, so it will not show in the budget status. Set a limit on the Categories tab.`);
     }
   } catch (err) {
-    setErrorMessage(err.message);
+    if (session === sessionRef.current) setErrorMessage(err.message);
   } finally {
     setLoading(false);
   }
@@ -302,6 +308,7 @@ export default function App() {
       sanitizedLimits[cat] = Number(val);
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -315,10 +322,11 @@ export default function App() {
         })
       });
       if (!res.ok) throw new Error(await readError(res));
+      if (session !== sessionRef.current) return;
 
       await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -383,6 +391,7 @@ async function handleGeneratePlan(e) {
     return;
   }
 
+  const session = sessionRef.current;
   setLoading(true);
   setErrorMessage('');
 
@@ -400,6 +409,7 @@ async function handleGeneratePlan(e) {
     });
     if (!res.ok) throw new Error(await readError(res));
     const data = await res.json();
+    if (session !== sessionRef.current) return;
     setPlanResult(data);
     await fetchTripDetails(currentTrip.id, currentTrip.inviteCode);
 
@@ -407,7 +417,7 @@ async function handleGeneratePlan(e) {
       setErrorMessage('Warning: no visits could be scheduled. Add activities first, or check their opening hours and the start time.');
     }
   } catch (err) {
-    setErrorMessage(err.message);
+    if (session === sessionRef.current) setErrorMessage(err.message);
   } finally {
     setLoading(false);
   }
