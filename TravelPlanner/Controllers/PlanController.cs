@@ -65,21 +65,14 @@ public class PlanController : ControllerBase
     [HttpGet("{tripId}/history")]
     public async Task<IActionResult> HistoryAsync(Guid tripId)
     {
-        if (await _tripService.FindTripByIdAsync(tripId) is null)
+        var versions = await _versionService.GetHistoryAsync(tripId);
+
+        if (versions is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        var versions = await _versionService.GetHistoryAsync(tripId);
-        var history = versions.Select(version => new
-        {
-            version.VersionNumber,
-            version.Timestamp,
-            version.ChangedBy,
-            version.RestoredFromVersion
-        }).ToList();
-
-        return Ok(history);
+        return Ok(versions);
     }
 
     [HttpPost("{tripId}/restore/{versionNumber}")]
