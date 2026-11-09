@@ -14,13 +14,23 @@ public class TripService
         _db = db;
     }
 
-    public async Task<Trip> CreateTripAsync(
+    public async Task<(Trip? Trip, string? ValidationError)> CreateTripAsync(
         string name,
         string destination,
         DateTime startDate,
         DateTime endDate,
         string organizerName)
     {
+        if (endDate < startDate)
+        {
+            return (null, "End date cannot be earlier than start date");
+        }
+
+        if (startDate.Date < DateTime.Today)
+        {
+            return (null, "Start date cannot be in the past");
+        }
+
         var organizer = new Participant
         {
             Name = organizerName,
@@ -39,7 +49,7 @@ public class TripService
 
         _db.Trips.Add(trip);
         await _db.SaveChangesAsync();
-        return trip;
+        return (trip, null);
     }
 
     public async Task<Trip?> JoinTripAsync(

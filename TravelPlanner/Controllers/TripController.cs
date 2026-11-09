@@ -25,22 +25,17 @@ public class TripController : ControllerBase
             return BadRequest(new { error = "Name, destination and organizer name are required" });
         }
 
-        if (request.EndDate < request.StartDate)
-        {
-            return BadRequest(new { error = "End date cannot be earlier than start date" });
-        }
-
-        if (request.StartDate.Date < DateTime.Today)
-        {
-            return BadRequest(new { error = "Start date cannot be in the past" });
-        }
-
-        var trip = await _tripService.CreateTripAsync(
+        var (trip, validationError) = await _tripService.CreateTripAsync(
             request.Name,
             request.Destination,
             request.StartDate,
             request.EndDate,
             request.OrganizerName);
+
+        if (trip is null)
+        {
+            return BadRequest(new { error = validationError });
+        }
 
         return Ok(ToTripResponse(trip));
     }
