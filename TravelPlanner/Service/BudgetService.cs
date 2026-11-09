@@ -7,6 +7,61 @@ namespace TravelPlanner.Service;
 
 public class BudgetService
 {
+    private readonly TripService _tripService;
+    private readonly TripVersionService _versionService;
+
+    public BudgetService(
+        TripService tripService,
+        TripVersionService versionService)
+    {
+        _tripService = tripService;
+        _versionService = versionService;
+    }
+
+    public async Task<(bool TripFound, string? ValidationError)> SetLimitsAsync(
+        string tripCode,
+        Dictionary<string, decimal> categoryLimits)
+    {
+        var trip = await _tripService.FindTripByCodeForUpdateAsync(tripCode);
+
+        if (trip is null)
+        {
+            return (false, null);
+        }
+
+        try
+        {
+            var parsed = new Dictionary<Category, decimal>();
+            foreach (var pair in categoryLimits)
+            {
+                if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
+                {
+                    return (true, $"Unknown category: {pair.Key}");
+                }
+
+                if (pair.Value < 0)
+                {
+                    return (true, $"Limit for {pair.Key} cannot be negative");
+                }
+
+                parsed[category] = pair.Value;
+            }
+
+            foreach (var pair in parsed)
+            {
+                trip.Budget.CategoryLimits[pair.Key] = pair.Value;
+            }
+
+            await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
+            await _tripService.SaveChangesAsync();
+            return (true, null);
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
+        }
+    }
+
     public decimal GetTotalSpent(Budget budget, Category category)
     {
         return budget.Expenses

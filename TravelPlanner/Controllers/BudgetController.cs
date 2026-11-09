@@ -38,44 +38,21 @@ public class BudgetController : ControllerBase
     public async Task<IActionResult> SetLimitsAsync(
         [FromBody] SetBudgetLimitsRequest request)
     {
-        var trip = await _tripService.FindTripByCodeForUpdateAsync(request.TripCode);
+        var result = await _budgetService.SetLimitsAsync(
+            request.TripCode,
+            request.CategoryLimits);
 
-        if (trip is null)
+        if (!result.TripFound)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        try
+        if (result.ValidationError is not null)
         {
-            var parsed = new Dictionary<Category, decimal>();
-            foreach (var pair in request.CategoryLimits)
-            {
-                if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
-                {
-                    return BadRequest(new { error = $"Unknown category: {pair.Key}" });
-                }
-
-                if (pair.Value < 0)
-                {
-                    return BadRequest(new { error = $"Limit for {pair.Key} cannot be negative" });
-                }
-
-                parsed[category] = pair.Value;
-            }
-
-            foreach (var pair in parsed)
-            {
-                trip.Budget.CategoryLimits[pair.Key] = pair.Value;
-            }
-
-            await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, "limits updated");
-            await _tripService.SaveChangesAsync();
-            return Ok(new { message = "Budget limits set" });
+            return BadRequest(new { error = result.ValidationError });
         }
-        finally
-        {
-            await _tripService.RollbackTransactionAsync();
-        }
+
+        return Ok(new { message = "Budget limits set" });
     }
 
     [HttpPost("expense")]
