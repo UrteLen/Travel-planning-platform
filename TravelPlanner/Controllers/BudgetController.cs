@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Requests;
 using TravelPlanner.Responses;
@@ -16,22 +15,19 @@ public class BudgetController : ControllerBase
     private readonly SettlementService _settlementService;
     private readonly SummaryService _summaryService;
     private readonly PdfExportService _pdfExportService;
-    private readonly TripVersionService _versionService;
 
     public BudgetController(
         TripService tripService,
         BudgetService budgetService,
         SettlementService settlementService,
         SummaryService summaryService,
-        PdfExportService pdfExportService,
-        TripVersionService versionService)
+        PdfExportService pdfExportService)
     {
         _tripService = tripService;
         _budgetService = budgetService;
         _settlementService = settlementService;
         _summaryService = summaryService;
         _pdfExportService = pdfExportService;
-        _versionService = versionService;
     }
 
     [HttpPost("limits")]
@@ -59,40 +55,18 @@ public class BudgetController : ControllerBase
     public async Task<IActionResult> AddExpenseAsync(
         [FromBody] AddExpenseRequest request)
     {
-        if (request.Amount <= 0)
+        var error = await _budgetService.AddExpenseAsync(
+            request.TripCode,
+            request.Amount,
+            request.Category,
+            request.ParticipantId);
+
+        if (error is not null)
         {
-            return BadRequest(new { error = "Amount must be greater than 0" });
+            return BadRequest(new { error });
         }
 
-        if (!Enum.TryParse<Category>(request.Category, true, out var category))
-        {
-            return BadRequest(new { error = "Invalid category" });
-        }
-
-        var trip = await _tripService.FindTripByCodeForUpdateAsync(request.TripCode);
-
-        if (trip is null)
-        {
-            return BadRequest(new { error = "Trip not found" });
-        }
-
-        try
-        {
-            var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == request.ParticipantId);
-            if (participant is null)
-            {
-                return BadRequest(new { error = "Participant not found" });
-            }
-
-            trip.Budget.Expenses.Add(new ExpenseEntry(request.Amount, category, DateTime.UtcNow, participant));
-            await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, participant.Name);
-            await _tripService.SaveChangesAsync();
-            return Ok(new { message = "Expense added" });
-        }
-        finally
-        {
-            await _tripService.RollbackTransactionAsync();
-        }
+        return Ok(new { message = "Expense added" });
     }
 
     [HttpGet("summary")]
