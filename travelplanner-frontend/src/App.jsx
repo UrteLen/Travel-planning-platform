@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './App.css';
 import ActivitiesPanel from './components/ActivitiesPanel';
 import CalendarPanel from './components/CalendarPanel';
@@ -37,14 +37,33 @@ export default function App() {
   const [planForm, setPlanForm] = useState({ startLat: '54.6872', startLon: '25.2797', startTime: '', speedKmh: '40', changedBy: 'Organizer' });
   const [planResult, setPlanResult] = useState([]);
 
+  const sessionRef = useRef(0);
   const requestIdRef = useRef(0);
   const [auth, setAuthState] = useState(getAuth());
+    const [authChecked, setAuthChecked] = useState(() => !getAuth());
 
-  function logout() {
-    clearAuth();
-    setAuthState(null);
-    setCurrentTrip(null);
-  }
+  useEffect(() => {
+    if (authChecked) return;
+    let cancelled = false;
+    fetch(`${API_BASE}/auth/me`)
+      .then(res => {
+        if (cancelled) return;
+        if (res.status === 401) {
+          clearAuth();
+          setAuthState(null);
+        }
+      })
+      .catch(() => { /* network error: keep the session, do not log out */ })
+      .finally(() => { if (!cancelled) setAuthChecked(true); });
+    return () => { cancelled = true; };
+  }, []);
+    function logout() {
+      sessionRef.current += 1;
+      requestIdRef.current += 1;
+      clearAuth();
+      setAuthState(null);
+      setCurrentTrip(null);
+    }
   const today = new Date().toLocaleDateString('en-CA');
 
   function handleTripLoaded(tripData, preferredParticipantName = '') {
@@ -110,6 +129,7 @@ export default function App() {
       return;
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -121,10 +141,11 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
+      if (session !== sessionRef.current) return;
       handleTripLoaded(data, organizerName);
       setCreateForm({ name: '', destination: '', startDate: '', endDate: '', organizerName: '' });
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -144,6 +165,7 @@ export default function App() {
       return;
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -155,10 +177,11 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
+      if (session !== sessionRef.current) return;
       handleTripLoaded(data, participantName);
       setJoinForm({ inviteCode: '', participantName: '' });
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -310,6 +333,7 @@ export default function App() {
       return;
     }
 
+    const session = sessionRef.current;
     setLoading(true);
     setErrorMessage('');
 
@@ -324,10 +348,11 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
+      if (session !== sessionRef.current) return;
       handleTripLoaded(data);
       setNewParticipantName('');
     } catch (err) {
-      setErrorMessage(err.message);
+      if (session === sessionRef.current) setErrorMessage(err.message);
     } finally {
       setLoading(false);
     }
@@ -394,8 +419,11 @@ async function handleGeneratePlan(e) {
   const totalSpent = summary?.totalSpent ?? 0;
   const totalPlanned = categoryResults ? categoryResults.reduce((acc, r) => acc + r.limit, 0) : Object.values(categoryLimits).reduce((a, b) => a + Number(b), 0);
   const costPerPerson = summary?.costPerPerson ?? 0;
+  if (!authChecked) {
+    return <div className="container"><p className="text-muted">Checking your session...</p></div>;
+  }
   if (!auth) {
-    return <AuthPanel apiBase={API_BASE} onAuth={a => { saveAuth(a); setAuthState(a); }} />;
+        return <AuthPanel apiBase={API_BASE} onAuth={a => { sessionRef.current += 1; saveAuth(a); setAuthState(a); }} />;
   }
   if (!currentTrip) {
     return (
