@@ -97,9 +97,8 @@ export default function App() {
       fetchTripDetails(tripData.id, tripData.inviteCode);
     }
   }
-    async function handleVersionRestored() {
-      if (!currentTrip?.id) return;
-      const session = sessionRef.current;
+    async function handleVersionRestored(session) {
+      if (!currentTrip?.id || session !== sessionRef.current) return;
       try {
         const res = await fetch(`${API_BASE}/trip/${currentTrip.id}`);
         if (!res.ok) throw new Error(await readError(res));
@@ -753,6 +752,7 @@ async function handleGeneratePlan(e) {
             tripId={currentTrip.id}
             changedBy={participantsList.find(p => p.id === activeParticipantId)?.name || 'Organizer'}
             onRestored={handleVersionRestored}
+            getSession={() => sessionRef.current}
           />
         )}
 

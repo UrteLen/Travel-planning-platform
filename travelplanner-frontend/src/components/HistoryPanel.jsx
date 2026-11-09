@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { readError } from '../apiError';
 
-export default function HistoryPanel({ apiBase, tripId, changedBy, onRestored }) {
+export default function HistoryPanel({ apiBase, tripId, changedBy, onRestored, getSession }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyVersion, setBusyVersion] = useState(null);
@@ -33,7 +33,7 @@ export default function HistoryPanel({ apiBase, tripId, changedBy, onRestored })
       `Restore version ${versionNumber}? This creates a new version, so no history is deleted.`
     );
     if (!ok) return;
-
+    const session = getSession ? getSession() : undefined;
     setBusyVersion(versionNumber);
     try {
       const res = await fetch(
@@ -41,7 +41,7 @@ export default function HistoryPanel({ apiBase, tripId, changedBy, onRestored })
         { method: 'POST' }
       );
       if (!res.ok) throw new Error(await readError(res));
-      if (onRestored) await onRestored();
+      if (onRestored) await onRestored(session);
       await load();
     } catch (err) {
       setMessage(err.message);
