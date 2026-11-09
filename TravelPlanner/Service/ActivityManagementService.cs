@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Data;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
+using TravelPlanner.Responses;
 
 namespace TravelPlanner.Service;
 
@@ -115,6 +116,42 @@ public class ActivityManagementService
             availableTime);
 
         return (selectedActivities, null);
+    }
+
+    public async Task<(VoteResultsResponse? Results, string? NotFoundError)> GetVoteResultsAsync(
+        Guid tripId,
+        Guid activityId,
+        Guid? participantId)
+    {
+        if (!await _db.Trips.AnyAsync(trip => trip.Id == tripId))
+        {
+            return (null, "Trip not found.");
+        }
+
+        var activity = await _db.Trips
+            .Where(trip => trip.Id == tripId)
+            .SelectMany(trip => trip.Activities)
+            .SingleOrDefaultAsync(activity => activity.Id == activityId);
+
+        if (activity is null)
+        {
+            return (null, "Activity not found in the trip.");
+        }
+
+        VoteType? participantVote = null;
+
+        if (participantId.HasValue
+            && activity.Votes.TryGetValue(participantId.Value, out var existingVote))
+        {
+            participantVote = existingVote;
+        }
+
+        var results = new VoteResultsResponse(
+            _activityVotingService.GetUpvoteCount(activity),
+            _activityVotingService.GetDownvoteCount(activity),
+            participantVote);
+
+        return (results, null);
     }
 
     public async Task<List<TripActivity>?> ImportActivitiesAsync(
