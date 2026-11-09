@@ -15,6 +15,7 @@ public class TravelPlannerDbContext : DbContext
 
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<StoredTripVersion> TripVersions => Set<StoredTripVersion>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -86,5 +87,7 @@ public class TravelPlannerDbContext : DbContext
         modelBuilder.Entity<ScheduledActivity>().Property(s => s.StartTime).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<PlannedVisit>().Property(v => v.ArrivalTime).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<PlannedVisit>().Property(v => v.DepartureTime).HasColumnType("timestamp without time zone");
+        modelBuilder.Entity<User>().Property(u => u.Id).ValueGeneratedNever();
+        modelBuilder.Entity<User>().HasIndex(u=>u.Email).IsUnique();
     }
 }

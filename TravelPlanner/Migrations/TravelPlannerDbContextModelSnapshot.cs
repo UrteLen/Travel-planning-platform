@@ -297,6 +297,31 @@ namespace TravelPlanner.Migrations
                     b.ToTable("TripActivity");
                 });
 
+            modelBuilder.Entity("TravelPlanner.Models.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("TravelPlanner.Models.ExpenseEntry", b =>
                 {
                     b.HasOne("TravelPlanner.Models.Budget", null)
