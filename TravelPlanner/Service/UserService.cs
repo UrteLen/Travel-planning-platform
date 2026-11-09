@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Data;
 using TravelPlanner.Exceptions;
 using TravelPlanner.Models;
+using Npgsql;
 
 namespace TravelPlanner.Service;
 
@@ -33,8 +34,21 @@ public class UserService
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, password);
 
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+                _db.Users.Add(user);
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "IX_Users_Email"
+            })
+        {
+            throw new EmailAlreadyRegisteredException(normalizedEmail);
+        }
 
         return user;
     }
