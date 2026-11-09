@@ -45,6 +45,30 @@ Requires Docker Desktop. Run these once, from the repository root:
 After pulling changes that include new migrations, run step 5 again.
 Stop the database with `docker compose down` (your data is kept).
 
+### JWT signing key
+
+The API will not start without a signing key for login tokens (min. 32 characters).
+It is a secret and must never be committed. Run once on each computer:
+
+```sh
+dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)" --project TravelPlanner
+```
+
+Each developer uses their own key; tokens made with one key are not valid on another computer.
+
+### Deployment
+
+On a deployed backend, supply the key as an environment variable. The double underscore
+maps to the `Jwt:Key` configuration setting:
+
+```sh
+Jwt__Key=<at least 32 random characters>
+```
+
+Set it in the hosting platform's secret store before rollout, and do the same for the
+connection string (`ConnectionStrings__Default`). The app refuses to start if the key is
+missing or too short. Changing the key logs every user out.
+
 Start the backend from the repository root:
 
 ```sh
