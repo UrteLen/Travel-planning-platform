@@ -65,15 +65,24 @@ public class ActivityManagementService
         return activity;
     }
 
+    public async Task<List<TripActivity>?> GetPrioritizedActivitiesAsync(Guid tripId)
+    {
+        var activities = await FindTripActivitiesAsync(tripId);
+
+        if (activities is null)
+        {
+            return null;
+        }
+
+        return _activityVotingService.PrioritizeByVotes(activities);
+    }
+
     public async Task<(List<TripActivity>? Activities, string? ValidationError)> GetSelectedActivitiesAsync(
         Guid tripId,
         decimal? budget,
         double? hours)
     {
-        var activities = await _db.Trips
-            .Where(trip => trip.Id == tripId)
-            .Select(trip => trip.Activities)
-            .SingleOrDefaultAsync();
+        var activities = await FindTripActivitiesAsync(tripId);
 
         if (activities is null)
         {
@@ -237,6 +246,14 @@ public class ActivityManagementService
         await transaction.CommitAsync();
 
         return scheduledActivity;
+    }
+
+    private Task<List<TripActivity>?> FindTripActivitiesAsync(Guid tripId)
+    {
+        return _db.Trips
+            .Where(trip => trip.Id == tripId)
+            .Select(trip => trip.Activities)
+            .SingleOrDefaultAsync();
     }
 
     private async Task<Trip?> FindTripForUpdateAsync(Guid tripId)
