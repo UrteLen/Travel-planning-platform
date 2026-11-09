@@ -88,29 +88,19 @@ public class PlanController : ControllerBase
         int versionNumber,
         [FromQuery] string changedBy = "unknown")
     {
-        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
+        var version = await _planService.RestoreVersionAsync(tripId, versionNumber, changedBy);
 
-        if (trip is null)
+        if (version is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        try
+        return Ok(new
         {
-            var version = await _planService.RestoreVersionAsync(trip, versionNumber, changedBy);
-            await _tripService.SaveChangesAsync();
-
-            return Ok(new
-            {
-                version.VersionNumber,
-                version.Timestamp,
-                version.ChangedBy,
-                version.RestoredFromVersion
-            });
-        }
-        finally
-        {
-            await _tripService.RollbackTransactionAsync();
-        }
+            version.VersionNumber,
+            version.Timestamp,
+            version.ChangedBy,
+            version.RestoredFromVersion
+        });
     }
 }

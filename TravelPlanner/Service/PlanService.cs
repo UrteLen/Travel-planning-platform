@@ -75,18 +75,36 @@ public class PlanService
         }
     }
 
-    public async Task<TripVersion> RestoreVersionAsync(Trip trip, int versionNumber, string changedBy)
+    public async Task<TripVersion?> RestoreVersionAsync(
+        Guid tripId,
+        int versionNumber,
+        string changedBy)
     {
-        var version = await _versionService.RestoreAsync(trip.Id, versionNumber, changedBy);
+        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
 
-        trip.Plan = version.PlanSnapshot
-            .Select(visit => new PlannedVisit(visit.Place.Clone(), visit.ArrivalTime, visit.DepartureTime))
-            .ToList();
+        if (trip is null)
+        {
+            return null;
+        }
 
-        RestoreBudget(trip, version.BudgetSnapshot);
-        RestoreActivities(trip, version.ActivitiesSnapshot);
+        try
+        {
+            var version = await _versionService.RestoreAsync(trip.Id, versionNumber, changedBy);
 
-        return version;
+            trip.Plan = version.PlanSnapshot
+                .Select(visit => new PlannedVisit(visit.Place.Clone(), visit.ArrivalTime, visit.DepartureTime))
+                .ToList();
+
+            RestoreBudget(trip, version.BudgetSnapshot);
+            RestoreActivities(trip, version.ActivitiesSnapshot);
+            await _tripService.SaveChangesAsync();
+
+            return version;
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
+        }
     }
 
     public static List<PlannedVisitResponse> ToResponseList(List<PlannedVisit> plan)
