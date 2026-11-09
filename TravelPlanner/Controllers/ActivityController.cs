@@ -147,42 +147,20 @@ public class ActivityController : ControllerBase
         [FromQuery] decimal? budget,
         [FromQuery] double? hours)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
+        var (activities, validationError) =
+            await _activityManagementService.GetSelectedActivitiesAsync(tripId, budget, hours);
 
-        if (trip is null)
+        if (validationError is not null)
+        {
+            return BadRequest(validationError);
+        }
+
+        if (activities is null)
         {
             return NotFound("Trip not found.");
         }
 
-        if (budget < 0)
-        {
-            return BadRequest("Budget must be non-negative.");
-        }
-
-        if (!hours.HasValue || !double.IsFinite(hours.Value) || hours.Value < 0)
-        {
-            return BadRequest("Hours are required and must be non-negative and finite.");
-        }
-
-        TimeSpan availableTime;
-        try
-        {
-            availableTime = TimeSpan.FromHours(hours.Value);
-        }
-        catch (OverflowException)
-        {
-            return BadRequest("Hours value is too large.");
-        }
-
-        var activities = _activityVotingService.SelectActivitiesForPlan(trip.Activities, budget, availableTime);
-        var responses = new List<ActivityResponse>();
-
-        foreach (var activity in activities)
-        {
-            responses.Add(ToActivityResponse(activity));
-        }
-
-        return Ok(responses);
+        return Ok(activities.Select(ToActivityResponse).ToList());
     }
 
     private ActivityResponse ToActivityResponse(TripActivity activity)

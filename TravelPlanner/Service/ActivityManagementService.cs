@@ -65,6 +65,49 @@ public class ActivityManagementService
         return activity;
     }
 
+    public async Task<(List<TripActivity>? Activities, string? ValidationError)> GetSelectedActivitiesAsync(
+        Guid tripId,
+        decimal? budget,
+        double? hours)
+    {
+        var activities = await _db.Trips
+            .Where(trip => trip.Id == tripId)
+            .Select(trip => trip.Activities)
+            .SingleOrDefaultAsync();
+
+        if (activities is null)
+        {
+            return (null, null);
+        }
+
+        if (budget < 0)
+        {
+            return (null, "Budget must be non-negative.");
+        }
+
+        if (!hours.HasValue || !double.IsFinite(hours.Value) || hours.Value < 0)
+        {
+            return (null, "Hours are required and must be non-negative and finite.");
+        }
+
+        TimeSpan availableTime;
+        try
+        {
+            availableTime = TimeSpan.FromHours(hours.Value);
+        }
+        catch (OverflowException)
+        {
+            return (null, "Hours value is too large.");
+        }
+
+        var selectedActivities = _activityVotingService.SelectActivitiesForPlan(
+            activities,
+            budget,
+            availableTime);
+
+        return (selectedActivities, null);
+    }
+
     public async Task<List<TripActivity>?> ImportActivitiesAsync(
         Guid tripId,
         Stream stream)
