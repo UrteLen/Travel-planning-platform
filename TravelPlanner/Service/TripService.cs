@@ -21,6 +21,13 @@ public class TripService
         DateTime endDate,
         string organizerName)
     {
+        if (string.IsNullOrWhiteSpace(name)
+            || string.IsNullOrWhiteSpace(destination)
+            || string.IsNullOrWhiteSpace(organizerName))
+        {
+            return (null, "Name, destination and organizer name are required");
+        }
+
         if (endDate < startDate)
         {
             return (null, "End date cannot be earlier than start date");

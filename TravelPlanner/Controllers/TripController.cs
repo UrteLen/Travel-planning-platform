@@ -20,11 +20,6 @@ public class TripController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> CreateAsync(CreateTripRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Destination) || string.IsNullOrWhiteSpace(request.OrganizerName))
-        {
-            return BadRequest(new { error = "Name, destination and organizer name are required" });
-        }
-
         var (trip, validationError) = await _tripService.CreateTripAsync(
             request.Name,
             request.Destination,
