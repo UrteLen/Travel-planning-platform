@@ -116,4 +116,41 @@ public class ActivityVotingServiceTests
         var selectedActivity = Assert.Single(selectedActivities);
         Assert.Equal(freeActivity.Id, selectedActivity.Id);
     }
+
+    [Fact]
+    public void SelectActivitiesForPlan_WhenVoteScoresDiffer_SelectsHigherNetScore()
+    {
+        var lowerScoreActivity = new TripActivity(
+            "Museum",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            estimatedCost: 12m);
+
+        var higherScoreActivity = new TripActivity(
+            "City tour",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            estimatedCost: 12m);
+
+        lowerScoreActivity.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        lowerScoreActivity.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        lowerScoreActivity.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        lowerScoreActivity.Votes[Guid.NewGuid()] = VoteType.Downvote;
+        lowerScoreActivity.Votes[Guid.NewGuid()] = VoteType.Downvote;
+
+        higherScoreActivity.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        higherScoreActivity.Votes[Guid.NewGuid()] = VoteType.Upvote;
+
+        var service = new ActivityVotingService();
+
+        var selectedActivities = service.SelectActivitiesForPlan(
+            new[] { lowerScoreActivity, higherScoreActivity },
+            12m,
+            TimeSpan.FromHours(2));
+
+        var selectedActivity = Assert.Single(selectedActivities);
+        Assert.Equal(higherScoreActivity.Id, selectedActivity.Id);
+    }
 }
