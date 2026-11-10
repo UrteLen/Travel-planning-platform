@@ -89,5 +89,10 @@ public class TravelPlannerDbContext : DbContext
         modelBuilder.Entity<PlannedVisit>().Property(v => v.DepartureTime).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<User>().Property(u => u.Id).ValueGeneratedNever();
         modelBuilder.Entity<User>().HasIndex(u=>u.Email).IsUnique();
+        modelBuilder.Entity<Participant>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -40,8 +40,10 @@ export default function App() {
   const sessionRef = useRef(0);
   const requestIdRef = useRef(0);
   const [auth, setAuthState] = useState(getAuth());
-    const [authChecked, setAuthChecked] = useState(() => !getAuth());
-
+  const [authChecked, setAuthChecked] = useState(() => !getAuth());
+  const [myTrips, setMyTrips] = useState(null);
+  const [myTripsError, setMyTripsError] = useState('');
+  const [myTripsReload, setMyTripsReload] = useState(0);
   useEffect(() => {
     if (authChecked) return;
     let cancelled = false;
@@ -63,10 +65,54 @@ export default function App() {
       clearAuth();
       setAuthState(null);
       setCurrentTrip(null);
+      setMyTrips(null);
+      setMyTripsError('');
     }
+  useEffect(() => {
+    if (!auth || !authChecked || currentTrip) return;
+    let cancelled = false;
+    const session = sessionRef.current;
+    fetch(`${API_BASE}/trip/mine`)
+      .then(async res => {
+        if (!res.ok) throw new Error(await readError(res));
+        return res.json();
+      })
+      .then(list => {
+        if (!cancelled && session === sessionRef.current) {
+          setMyTrips(list);
+          setMyTripsError('');
+        }
+      })
+      .catch(err => {
+        if (!cancelled && session === sessionRef.current) {
+          setMyTripsError(err.message || 'Could not load your trips.');
+        }
+      });
+    return () => { cancelled = true; };
+  }, [auth, authChecked, currentTrip, myTripsReload]);
+
+  async function openMyTrip(id, participantId) {
+    const session = sessionRef.current;
+    setErrorMessage('');
+    try {
+      const res = await fetch(`${API_BASE}/trip/${id}`);
+      if (!res.ok) throw new Error(await readError(res));
+      const data = await res.json();
+      if (session !== sessionRef.current) return;
+      handleTripLoaded(data, '', participantId);
+    } catch (err) {
+      if (session === sessionRef.current) setErrorMessage(err.message);
+    }
+  }
+
+  let lastTripId = null;
+  try { lastTripId = localStorage.getItem('tp_last_trip'); } catch { /* ignore */ }
+  const lastTrip = (myTrips || []).find(t => t.id === lastTripId);
+
   const today = new Date().toLocaleDateString('en-CA');
 
-  function handleTripLoaded(tripData, preferredParticipantName = '') {
+  function handleTripLoaded(tripData, preferredParticipantName = '', preferredParticipantId = '') {
+    try { localStorage.setItem('tp_last_trip', tripData.id); } catch { /* ignore */ }
     const people = Object.values(tripData?.participants || []);
 
     const preferred = preferredParticipantName
@@ -74,8 +120,12 @@ export default function App() {
             person => person.name.toLowerCase() === preferredParticipantName.toLowerCase()
         ).at(-1)
         : null;
+    const byId = preferredParticipantId
+        ? people.find(person => person.id === preferredParticipantId)
+        : null;
 
     const selected =
+        byId ||
         preferred ||
         people.find(person => person.id === activeParticipantId) ||
         people[0];
@@ -176,7 +226,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/trip/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inviteCode, participantName })
+        body: JSON.stringify({ inviteCode, participantName, linkToAccount: true })
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
@@ -440,6 +490,44 @@ async function handleGeneratePlan(e) {
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
         <p className="trip-meta">Signed in as <strong>{auth.displayName}</strong> <button onClick={logout} className="btn-secondary">Log out</button></p>
+
+        <div className="card">
+          <h2>My account: {auth.displayName}</h2>
+          {lastTrip && (
+            <p>
+              <button className="btn-primary" onClick={() => openMyTrip(lastTrip.id, lastTrip.participantId)}>
+                Continue: {lastTrip.name}
+              </button>
+            </p>
+          )}
+          {myTripsError ? (
+            <p className="text-muted">
+              Could not load your trips: {myTripsError}{' '}
+              <button className="btn-secondary" onClick={() => {
+                setMyTrips(null);
+                setMyTripsError('');
+                setMyTripsReload(n => n + 1);
+              }}>Retry</button>
+            </p>
+          ) : myTrips === null ? (
+            <p className="text-muted">Loading your trips...</p>
+          ) : myTrips.length === 0 ? (
+            <p className="text-muted">You have no trips yet. Create one below or join with an invite code.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {myTrips.map(t => (
+                <li key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #e5e5e5' }}>
+                  <span>
+                    <strong>{t.name}</strong> – {t.destination}
+                    <br />
+                    <span className="text-muted">{t.startDate.slice(0, 10)} → {t.endDate.slice(0, 10)} · {t.role} · code {t.inviteCode}</span>
+                  </span>
+                  <button className="btn-secondary" onClick={() => openMyTrip(t.id, t.participantId)}>Open</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
            {errorMessage && (
      <div className={`error-banner ${errorMessage.startsWith('Warning') ? 'is-warning' : ''}`} role="alert">
        {errorMessage}

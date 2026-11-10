@@ -4,6 +4,7 @@ using TravelPlanner.Models;
 using TravelPlanner.Requests;
 using TravelPlanner.Responses;
 using TravelPlanner.Service;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TravelPlanner.Controllers;
 
@@ -17,6 +18,7 @@ public class TripController : ControllerBase
         _tripService = tripService;
     }
 
+    [Authorize]
     [HttpPost("create")]
     public async Task<IActionResult> CreateAsync(CreateTripRequest request)
     {
@@ -25,7 +27,8 @@ public class TripController : ControllerBase
             request.Destination,
             request.StartDate,
             request.EndDate,
-            request.OrganizerName);
+            request.OrganizerName,
+            GetUserId());
 
         if (trip is null)
         {
@@ -47,11 +50,26 @@ public class TripController : ControllerBase
         return Ok(ToTripResponse(trip));
     }
 
+
     [HttpPost("join")]
     public async Task<IActionResult> JoinAsync(JoinTripRequest request)
     {
-        var trip = await _tripService.JoinTripAsync(request.InviteCode, request.ParticipantName, role: UserRole.Participant);
+        Guid? userId = null;
+        if (request.LinkToAccount)
+        {
+            userId = GetUserId();
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
+        }
 
+        var trip = await _tripService.JoinTripAsync(
+            request.InviteCode,
+            request.ParticipantName,
+            role: UserRole.Participant,
+            userId: userId);
+            
         if (trip is null)
         {
             return NotFound("No trip found with that invite code.");
@@ -60,6 +78,36 @@ public class TripController : ControllerBase
         return Ok(ToTripResponse(trip));
     }
 
+    [Authorize]
+    [HttpGet("mine")]
+    public async Task<IActionResult> MineAsync()
+    {
+        var userId = GetUserId();
+        if (userId is null) return Unauthorized();
+
+        var trips = await _tripService.FindTripsByUserAsync(userId.Value);
+        return Ok(trips.Select(t => 
+        {
+            var me = t.Participants.First(p => p.UserId == userId);
+            return new
+            {
+                t.Id,
+                t.Name,
+                t.Destination,
+                t.StartDate,
+                t.EndDate,
+                t.InviteCode,
+                ParticipantId = me.Id,
+                Role = me.Role.ToString()
+            };
+            
+        }));
+    }
+
+    private Guid? GetUserId()
+    {
+        return Guid.TryParse(User.FindFirst("sub")?.Value, out var id) ? id : null;
+    }
     private TripResponse ToTripResponse(Trip trip)
     {
         var participants = trip.Participants.ToDictionary(
