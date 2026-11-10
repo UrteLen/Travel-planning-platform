@@ -40,9 +40,10 @@ export default function App() {
   const sessionRef = useRef(0);
   const requestIdRef = useRef(0);
   const [auth, setAuthState] = useState(getAuth());
-    const [authChecked, setAuthChecked] = useState(() => !getAuth());
+  const [authChecked, setAuthChecked] = useState(() => !getAuth());
   const [myTrips, setMyTrips] = useState(null);
-
+  const [myTripsError, setMyTripsError] = useState('');
+  const [myTripsReload, setMyTripsReload] = useState(0);
   useEffect(() => {
     if (authChecked) return;
     let cancelled = false;
@@ -65,19 +66,32 @@ export default function App() {
       setAuthState(null);
       setCurrentTrip(null);
       setMyTrips(null);
+      setMyTripsError('');
     }
   useEffect(() => {
     if (!auth || !authChecked || currentTrip) return;
     let cancelled = false;
     const session = sessionRef.current;
     fetch(`${API_BASE}/trip/mine`)
-      .then(res => (res.ok ? res.json() : []))
-      .then(list => { if (!cancelled && session === sessionRef.current) setMyTrips(list); })
-      .catch(() => { if (!cancelled) setMyTrips([]); });
+      .then(async res => {
+        if (!res.ok) throw new Error(await readError(res));
+        return res.json();
+      })
+      .then(list => {
+        if (!cancelled && session === sessionRef.current) {
+          setMyTrips(list);
+          setMyTripsError('');
+        }
+      })
+      .catch(err => {
+        if (!cancelled && session === sessionRef.current) {
+          setMyTripsError(err.message || 'Could not load your trips.');
+        }
+      });
     return () => { cancelled = true; };
-  }, [auth, authChecked, currentTrip]);
+  }, [auth, authChecked, currentTrip, myTripsReload]);
 
-  async function openMyTrip(id) {
+  async function openMyTrip(id, participantId) {
     const session = sessionRef.current;
     setErrorMessage('');
     try {
@@ -85,7 +99,7 @@ export default function App() {
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
       if (session !== sessionRef.current) return;
-      handleTripLoaded(data, auth.displayName);
+      handleTripLoaded(data, '', participantId);
     } catch (err) {
       if (session === sessionRef.current) setErrorMessage(err.message);
     }
@@ -97,7 +111,7 @@ export default function App() {
 
   const today = new Date().toLocaleDateString('en-CA');
 
-  function handleTripLoaded(tripData, preferredParticipantName = '') {
+  function handleTripLoaded(tripData, preferredParticipantName = '', preferredParticipantId = '') {
     try { localStorage.setItem('tp_last_trip', tripData.id); } catch { /* ignore */ }
     const people = Object.values(tripData?.participants || []);
 
@@ -106,8 +120,12 @@ export default function App() {
             person => person.name.toLowerCase() === preferredParticipantName.toLowerCase()
         ).at(-1)
         : null;
+    const byId = preferredParticipantId
+        ? people.find(person => person.id === preferredParticipantId)
+        : null;
 
     const selected =
+        byId ||
         preferred ||
         people.find(person => person.id === activeParticipantId) ||
         people[0];
@@ -477,12 +495,21 @@ async function handleGeneratePlan(e) {
           <h2>My account: {auth.displayName}</h2>
           {lastTrip && (
             <p>
-              <button className="btn-primary" onClick={() => openMyTrip(lastTrip.id)}>
+              <button className="btn-primary" onClick={() => openMyTrip(lastTrip.id, lastTrip.participantId)}>
                 Continue: {lastTrip.name}
               </button>
             </p>
           )}
-          {myTrips === null ? (
+          {myTripsError ? (
+            <p className="text-muted">
+              Could not load your trips: {myTripsError}{' '}
+              <button className="btn-secondary" onClick={() => {
+                setMyTrips(null);
+                setMyTripsError('');
+                setMyTripsReload(n => n + 1);
+              }}>Retry</button>
+            </p>
+          ) : myTrips === null ? (
             <p className="text-muted">Loading your trips...</p>
           ) : myTrips.length === 0 ? (
             <p className="text-muted">You have no trips yet. Create one below or join with an invite code.</p>
@@ -495,7 +522,7 @@ async function handleGeneratePlan(e) {
                     <br />
                     <span className="text-muted">{t.startDate.slice(0, 10)} → {t.endDate.slice(0, 10)} · {t.role} · code {t.inviteCode}</span>
                   </span>
-                  <button className="btn-secondary" onClick={() => openMyTrip(t.id)}>Open</button>
+                  <button className="btn-secondary" onClick={() => openMyTrip(t.id, t.participantId)}>Open</button>
                 </li>
               ))}
             </ul>

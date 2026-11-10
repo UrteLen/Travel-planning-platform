@@ -86,15 +86,21 @@ public class TripController : ControllerBase
         if (userId is null) return Unauthorized();
 
         var trips = await _tripService.FindTripsByUserAsync(userId.Value);
-        return Ok(trips.Select(t => new
+        return Ok(trips.Select(t => 
         {
-            t.Id,
-            t.Name,
-            t.Destination,
-            t.StartDate,
-            t.EndDate,
-            t.InviteCode,
-            Role = t.Participants.First(p => p.UserId == userId).Role.ToString()
+            var me = t.Participants.First(p => p.UserId == userId);
+            return new
+            {
+                t.Id,
+                t.Name,
+                t.Destination,
+                t.StartDate,
+                t.EndDate,
+                t.InviteCode,
+                ParticipantId = me.Id,
+                Role = me.Role.ToString()
+            };
+            
         }));
     }
 
