@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using TravelPlanner.Data;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
@@ -6,38 +8,123 @@ namespace TravelPlanner.Service;
 
 public class PlanService
 {
+    private readonly TripService _tripService;
     private readonly DayPlanningService _dayPlanningService;
     private readonly TripVersionService _versionService;
+    private readonly TravelPlannerDbContext _db;
 
     public PlanService(
+        TripService tripService,
         DayPlanningService dayPlanningService,
-        TripVersionService versionService)
+        TripVersionService versionService,
+        TravelPlannerDbContext db)
     {
+        _tripService = tripService;
         _dayPlanningService = dayPlanningService;
         _versionService = versionService;
+        _db = db;
     }
 
-    public async Task<List<PlannedVisit>> GeneratePlanAsync(Trip trip, GeoLocation start, DateTime startTime, double speedKmh, string changedBy)
+    public async Task<(List<PlannedVisit>? Plan, string? ValidationError)> GeneratePlanAsync(
+        Guid tripId,
+        double startLatitude,
+        double startLongitude,
+        DateTime startTime,
+        double speedKmh,
+        string changedBy)
     {
-        var places = trip.Activities.Select(ToPlace).ToList();
-        trip.Plan = _dayPlanningService.DayPlan(places, start, startTime, speedKmh);
-        await _versionService.SaveVersionAsync(trip.Id, trip.Budget, trip.Plan, trip.Activities, changedBy);
+        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
 
-        return trip.Plan;
+        if (trip is null)
+        {
+            return (null, null);
+        }
+
+        try
+        {
+            if (speedKmh <= 0)
+            {
+                return (null, "Speed must be positive");
+            }
+
+            GeoLocation start;
+            try
+            {
+                start = new GeoLocation(startLatitude, startLongitude);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return (null, "Invalid start coordinates");
+            }
+
+            var places = trip.Activities.Select(ToPlace).ToList();
+            trip.Plan = _dayPlanningService.DayPlan(
+                places,
+                start,
+                DateTime.SpecifyKind(startTime, DateTimeKind.Unspecified),
+                speedKmh);
+
+            await _versionService.SaveVersionAsync(
+                trip.Id,
+                trip.Budget,
+                trip.Plan,
+                trip.Activities,
+                changedBy);
+            await _tripService.SaveChangesAsync();
+
+            return (trip.Plan, null);
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
+        }
     }
 
-    public async Task<TripVersion> RestoreVersionAsync(Trip trip, int versionNumber, string changedBy)
+    public async Task<List<PlannedVisitResponse>?> GetPlanAsync(Guid tripId)
     {
-        var version = await _versionService.RestoreAsync(trip.Id, versionNumber, changedBy);
+        return await _db.Trips
+            .Where(trip => trip.Id == tripId)
+            .Select(trip => trip.Plan
+                .OrderBy(visit => visit.ArrivalTime)
+                .ThenBy(visit => visit.DepartureTime)
+                .Select(visit => new PlannedVisitResponse(
+                    visit.Place.Name,
+                    visit.ArrivalTime,
+                    visit.DepartureTime))
+                .ToList())
+            .SingleOrDefaultAsync();
+    }
 
-        trip.Plan = version.PlanSnapshot
-            .Select(visit => new PlannedVisit(visit.Place.Clone(), visit.ArrivalTime, visit.DepartureTime))
-            .ToList();
+    public async Task<TripVersion?> RestoreVersionAsync(
+        Guid tripId,
+        int versionNumber,
+        string changedBy)
+    {
+        var trip = await _tripService.FindTripByIdForUpdateAsync(tripId);
 
-        RestoreBudget(trip, version.BudgetSnapshot);
-        RestoreActivities(trip, version.ActivitiesSnapshot);
+        if (trip is null)
+        {
+            return null;
+        }
 
-        return version;
+        try
+        {
+            var version = await _versionService.RestoreAsync(trip.Id, versionNumber, changedBy);
+
+            trip.Plan = version.PlanSnapshot
+                .Select(visit => new PlannedVisit(visit.Place.Clone(), visit.ArrivalTime, visit.DepartureTime))
+                .ToList();
+
+            RestoreBudget(trip, version.BudgetSnapshot);
+            RestoreActivities(trip, version.ActivitiesSnapshot);
+            await _tripService.SaveChangesAsync();
+
+            return version;
+        }
+        finally
+        {
+            await _tripService.RollbackTransactionAsync();
+        }
     }
 
     public static List<PlannedVisitResponse> ToResponseList(List<PlannedVisit> plan)
