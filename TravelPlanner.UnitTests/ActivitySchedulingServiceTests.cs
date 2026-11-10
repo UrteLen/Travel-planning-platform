@@ -197,4 +197,33 @@ public class ActivitySchedulingServiceTests
         Assert.Same(scheduledActivity, savedActivity);
         Assert.Equal(activity.Id, savedActivity.Activity.Id);
     }
+
+    [Fact]
+    public void GetDailySchedule_WhenActivitySpansMidnight_IncludesItOnBothDays()
+    {
+        var activity = new TripActivity(
+            "Museum",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(2),
+            estimatedCost: 12m);
+
+        var scheduledActivity = new ScheduledActivity(
+            activity,
+            new DateTime(2026, 12, 1, 23, 0, 0));
+
+        var scheduledActivities = new[] { scheduledActivity };
+        var service = new ActivitySchedulingService();
+
+        var firstDaySchedule = service.GetDailySchedule(
+            scheduledActivities,
+            new DateTime(2026, 12, 1));
+
+        var secondDaySchedule = service.GetDailySchedule(
+            scheduledActivities,
+            new DateTime(2026, 12, 2));
+
+        Assert.Same(scheduledActivity, Assert.Single(firstDaySchedule));
+        Assert.Same(scheduledActivity, Assert.Single(secondDaySchedule));
+    }
 }
