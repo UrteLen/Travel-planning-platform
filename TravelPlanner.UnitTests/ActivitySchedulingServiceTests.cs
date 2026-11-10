@@ -134,4 +134,36 @@ public class ActivitySchedulingServiceTests
         var scheduledActivity = Assert.Single(trip.ScheduledActivities);
         Assert.Equal(firstActivity.Id, scheduledActivity.Activity.Id);
     }
+
+    [Fact]
+    public void ScheduleActivity_WhenActivityEndsAfterClosing_RejectsNewActivity()
+    {
+        var trip = new Trip
+        {
+            StartDate = new DateTime(2026, 12, 1),
+            EndDate = new DateTime(2026, 12, 1)
+        };
+
+        var activity = new TripActivity(
+            "Museum",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            estimatedCost: 12m,
+            openingTime: TimeSpan.FromHours(9),
+            closingTime: TimeSpan.FromHours(17));
+
+        var service = new ActivitySchedulingService();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            service.ScheduleActivity(
+                trip,
+                activity,
+                new DateTime(2026, 12, 1, 16, 30, 0),
+                40));
+
+        Assert.Contains("opening hours", exception.Message);
+
+        Assert.Empty(trip.ScheduledActivities);
+    }
 }
