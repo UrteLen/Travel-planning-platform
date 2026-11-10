@@ -65,4 +65,25 @@ public class ActivityVotingServiceTests
         var selectedActivity = Assert.Single(selectedActivities);
         Assert.Equal(higherVotedActivity.Id, selectedActivity.Id);
     }
+
+    [Fact]
+    public void SelectActivitiesForPlan_WhenBudgetIsNull_IncludesPaidActivity()
+    {
+        var activity = new TripActivity(
+            "Museum",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            estimatedCost: 12m);
+
+        var service = new ActivityVotingService();
+
+        var selectedActivities = service.SelectActivitiesForPlan(
+            new[] { activity },
+            null,
+            TimeSpan.FromHours(2));
+
+        var selectedActivity = Assert.Single(selectedActivities);
+        Assert.Equal(activity.Id, selectedActivity.Id);
+    }
 }
