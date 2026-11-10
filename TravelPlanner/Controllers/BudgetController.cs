@@ -8,24 +8,18 @@ namespace TravelPlanner.Controllers;
 [Route("api/[controller]")]
 public class BudgetController : ControllerBase
 {
-    private readonly TripService _tripService;
     private readonly BudgetService _budgetService;
     private readonly SettlementService _settlementService;
     private readonly SummaryService _summaryService;
-    private readonly PdfExportService _pdfExportService;
 
     public BudgetController(
-        TripService tripService,
         BudgetService budgetService,
         SettlementService settlementService,
-        SummaryService summaryService,
-        PdfExportService pdfExportService)
+        SummaryService summaryService)
     {
-        _tripService = tripService;
         _budgetService = budgetService;
         _settlementService = settlementService;
         _summaryService = summaryService;
-        _pdfExportService = pdfExportService;
     }
 
     [HttpPost("limits")]
@@ -96,15 +90,12 @@ public class BudgetController : ControllerBase
     [HttpGet("export/{tripId}")]
     public async Task<IActionResult> ExportSummaryAsync(Guid tripId)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
-        if (trip is null)
+        var pdfBytes = await _summaryService.ExportSummaryAsync(tripId);
+
+        if (pdfBytes is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
-
-        int participantCount = trip.Participants.Count > 0 ? trip.Participants.Count : 1;
-        var summary = _summaryService.GenerateSummary(trip.Budget, trip.Plan, numberOfParticipants: participantCount);
-        var pdfBytes = _pdfExportService.ExportToPdf(summary);
 
         return File(pdfBytes, "application/pdf", $"trip-summary-{tripId}.pdf");
     }
