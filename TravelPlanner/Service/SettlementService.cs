@@ -1,15 +1,39 @@
 using TravelPlanner.Extensions;
 using TravelPlanner.Models;
+using TravelPlanner.Responses;
 
 namespace TravelPlanner.Service;
 
 public class SettlementService
 {
     private readonly BudgetService _budgetService;
+    private readonly TripService _tripService;
 
-    public SettlementService(BudgetService budgetService)
+    public SettlementService(
+        BudgetService budgetService,
+        TripService tripService)
     {
         _budgetService = budgetService;
+        _tripService = tripService;
+    }
+
+    public async Task<List<SettlementResponse>?> GetSettlementAsync(string tripCode)
+    {
+        var trip = await _tripService.FindTripForBudgetByCodeAsync(tripCode);
+
+        if (trip is null)
+        {
+            return null;
+        }
+
+        var balances = CalculateBalances(trip.Budget, trip.Participants);
+        var settlements = SimplifyDebts(balances);
+
+        return settlements.Select(settlement => new SettlementResponse(
+            GetParticipantName(trip, settlement.FromParticipantId),
+            GetParticipantName(trip, settlement.ToParticipantId),
+            settlement.Amount
+        )).ToList();
     }
 
     public Dictionary<Guid, decimal> CalculateBalances(Budget budget, IEnumerable<Participant> participants)
@@ -75,5 +99,11 @@ public class SettlementService
         }
 
         return settlements;
+    }
+
+    private static string GetParticipantName(Trip trip, Guid participantId)
+    {
+        var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == participantId);
+        return participant?.Name ?? "Unknown participant";
     }
 }

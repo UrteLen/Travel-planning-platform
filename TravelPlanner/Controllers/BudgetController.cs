@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Models;
 using TravelPlanner.Requests;
-using TravelPlanner.Responses;
 using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers;
@@ -85,29 +83,14 @@ public class BudgetController : ControllerBase
     [HttpGet("settlement")]
     public async Task<IActionResult> GetSettlementAsync(string tripCode)
     {
-        var trip = await _tripService.FindTripByCodeAsync(tripCode);
+        var settlements = await _settlementService.GetSettlementAsync(tripCode);
 
-        if (trip is null)
+        if (settlements is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        var balances = _settlementService.CalculateBalances(trip.Budget, trip.Participants);
-        var settlements = _settlementService.SimplifyDebts(balances);
-
-        var result = settlements.Select(settlement => new SettlementResponse(
-            GetParticipantName(trip, settlement.FromParticipantId),
-            GetParticipantName(trip, settlement.ToParticipantId),
-            settlement.Amount
-        )).ToList();
-
-        return Ok(result);
-    }
-
-    private static string GetParticipantName(Trip trip, Guid participantId)
-    {
-        var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == participantId);
-        return participant?.Name ?? "Unknown participant";
+        return Ok(settlements);
     }
 
     [HttpGet("export/{tripId}")]
