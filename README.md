@@ -56,6 +56,37 @@ dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)" --project TravelP
 
 Each developer uses their own key; tokens made with one key are not valid on another computer.
 
+### PostgreSQL integration tests
+
+Complete the local HTTPS, PostgreSQL, and JWT setup above. Run the following commands from the repository root. The test creates a new user, trip, and scheduled activity on each run. Use the separate `travelplanner_integration` database for test data.
+
+Start PostgreSQL and create the test database once:
+
+```bash
+docker compose up -d db
+docker compose exec db createdb -U travel travelplanner_integration
+```
+
+Apply the migrations and start the API on port `7257`. The example uses zsh. Enter the `POSTGRES_PASSWORD` value from `.env` when prompted.
+
+```zsh
+(
+  read -rs 'db_password?PostgreSQL password: '
+  printf '\n'
+  export ASPNETCORE_ENVIRONMENT=Development
+  export ConnectionStrings__Default="Host=localhost;Port=5432;Database=travelplanner_integration;Username=travel;Password=$db_password"
+  dotnet ef database update --project TravelPlanner &&
+    dotnet run --project TravelPlanner/TravelPlanner.csproj --no-launch-profile \
+      --urls https://localhost:7257
+)
+```
+
+Once the API is listening, leave it running and run the test in a second terminal:
+
+```bash
+dotnet test --project TravelPlanner.IntegrationTests/TravelPlanner.IntegrationTests.csproj
+```
+
 ### Deployment
 
 On a deployed backend, supply the key as an environment variable. The double underscore
