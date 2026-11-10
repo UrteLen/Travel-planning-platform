@@ -103,6 +103,18 @@ public class TripService
             .FirstOrDefaultAsync(trip => trip.InviteCode == inviteCode);
     }
 
+    public async Task<Trip?> FindTripForBudgetByCodeAsync(string inviteCode)
+    {
+        return await _db.Trips
+            .AsNoTracking()
+            .Include(trip => trip.Participants)
+            .Include(trip => trip.Budget)
+                .ThenInclude(budget => budget.Expenses)
+                    .ThenInclude(expense => expense.Participant)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(trip => trip.InviteCode == inviteCode);
+    }
+
     public async Task<Trip?> FindTripByIdAsync(Guid tripId)
     {
         return await TripsWithDetails()

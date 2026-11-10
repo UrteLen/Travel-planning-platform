@@ -72,17 +72,14 @@ public class BudgetController : ControllerBase
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummaryAsync(string tripCode)
     {
-        var trip = await _tripService.FindTripByCodeAsync(tripCode);
+        var summary = await _budgetService.GetSummaryAsync(tripCode);
 
-        if (trip is null)
+        if (summary is null)
         {
             return NotFound(new { error = "Trip not found" });
         }
 
-        var results = _budgetService.CheckAllCategories(trip.Budget);
-        var costPerPerson = _budgetService.GetCostPerPerson(trip.Budget, trip.Participants.Count);
-        var totalSpent = _budgetService.GetTotalActualSpend(trip.Budget);
-        return Ok(new BudgetSummaryResponse(results, costPerPerson, totalSpent));
+        return Ok(summary);
     }
 
     [HttpGet("settlement")]
