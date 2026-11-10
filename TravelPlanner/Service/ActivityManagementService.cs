@@ -31,14 +31,30 @@ public class ActivityManagementService
     public async Task<TripActivity?> AddActivityAsync(
         Guid tripId,
         string name,
-        Category category,
-        GeoLocation location,
-        TimeSpan duration,
+        string category,
+        double latitude,
+        double longitude,
+        double durationHours,
         decimal estimatedCost = 0m,
         bool optional = true,
         TimeSpan? openingTime = null,
         TimeSpan? closingTime = null)
     {
+        if (!Enum.TryParse<Category>(category, true, out var parsedCategory)
+            || !Enum.IsDefined(parsedCategory))
+        {
+            throw new ArgumentException("Invalid category.");
+        }
+
+        if (!double.IsFinite(durationHours) || durationHours <= 0)
+        {
+            throw new ArgumentException(
+                "Activity duration must be a finite number greater than zero.");
+        }
+
+        var location = new GeoLocation(latitude, longitude);
+        var duration = TimeSpan.FromHours(durationHours);
+
         await using var transaction =
             await _db.Database.BeginTransactionAsync();
 
@@ -52,7 +68,7 @@ public class ActivityManagementService
         var activity = _activityService.AddActivity(
             trip,
             name,
-            category,
+            parsedCategory,
             location,
             duration,
             estimatedCost,
