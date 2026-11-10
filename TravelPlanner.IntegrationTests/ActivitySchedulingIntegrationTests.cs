@@ -13,10 +13,8 @@ public class ActivitySchedulingIntegrationTests
     [Fact]
     public async Task ScheduleActivity_WhenScheduled_AppearsInDailySchedule()
     {
-        using var client = new HttpClient
-        {
-            BaseAddress = new Uri("https://localhost:7257")
-        };
+        using var client = new HttpClient();
+        client.BaseAddress = new Uri("https://localhost:7257");
 
         var cancellationToken = TestContext.Current.CancellationToken;
         var token = await RegisterTestUserAsync(client, cancellationToken);
