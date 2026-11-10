@@ -8,17 +8,10 @@ namespace TravelPlanner.Controllers;
 [Route("api/trips/{tripId}/scheduled-activities")]
 public class ScheduleController : ControllerBase
 {
-    private readonly TripService _tripService;
-    private readonly ActivitySchedulingService _activitySchedulingService;
     private readonly ActivityManagementService _activityManagementService;
 
-    public ScheduleController(
-        TripService tripService,
-        ActivitySchedulingService activitySchedulingService,
-        ActivityManagementService activityManagementService)
+    public ScheduleController(ActivityManagementService activityManagementService)
     {
-        _tripService = tripService;
-        _activitySchedulingService = activitySchedulingService;
         _activityManagementService = activityManagementService;
     }
 
@@ -27,20 +20,12 @@ public class ScheduleController : ControllerBase
         Guid tripId,
         [FromBody] ScheduleActivityRequest request)
     {
-        if (request.ActivityId == Guid.Empty ||
-            request.StartTime == default ||
-            !double.IsFinite(request.SpeedKmh) ||
-            request.SpeedKmh <= 0)
-        {
-            return BadRequest("Valid ActivityId, StartTime and positive SpeedKmh are required.");
-        }
-
         try
         {
             var scheduledActivity = await _activityManagementService.ScheduleActivityAsync(
                 tripId,
                 request.ActivityId,
-                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
+                request.StartTime,
                 request.SpeedKmh);
 
             return Ok(scheduledActivity);
@@ -69,19 +54,11 @@ public class ScheduleController : ControllerBase
         Guid tripId,
         [FromQuery] DateTime? date)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
+        var scheduledActivities = await _activityManagementService.GetScheduleAsync(tripId, date);
 
-        if (trip is null)
+        if (scheduledActivities is null)
         {
             return NotFound();
-        }
-
-        var scheduledActivities = trip.ScheduledActivities;
-
-        if (date.HasValue)
-        {
-            scheduledActivities = _activitySchedulingService.GetDailySchedule(
-                scheduledActivities, date.Value);
         }
 
         return Ok(scheduledActivities);
@@ -116,7 +93,7 @@ public class ScheduleController : ControllerBase
             var scheduledActivity = await _activityManagementService.UpdateScheduledActivityAsync(
                 tripId,
                 scheduledActivityId,
-                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
+                request.StartTime,
                 request.SpeedKmh);
 
             return Ok(scheduledActivity);

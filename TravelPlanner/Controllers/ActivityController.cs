@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Requests;
 using TravelPlanner.Responses;
@@ -12,18 +11,11 @@ namespace TravelPlanner.Controllers;
 [Route("api/trips/{tripId}/activities")]
 public class ActivityController : ControllerBase
 {
-    private readonly TripService _tripService;
     private readonly ActivityManagementService _activityManagementService;
-    private readonly ActivityVotingService _activityVotingService;
 
-    public ActivityController(
-        TripService tripService,
-        ActivityManagementService activityManagementService,
-        ActivityVotingService activityVotingService)
+    public ActivityController(ActivityManagementService activityManagementService)
     {
-        _tripService = tripService;
         _activityManagementService = activityManagementService;
-        _activityVotingService = activityVotingService;
     }
 
     [HttpPost]
@@ -31,28 +23,15 @@ public class ActivityController : ControllerBase
         Guid tripId,
         [FromBody] AddActivityRequest request)
     {
-        if (!Enum.TryParse<Category>(request.Category, true, out var category)
-            || !Enum.IsDefined(category))
-        {
-            return BadRequest("Invalid category.");
-        }
-
-        if (!double.IsFinite(request.DurationHours) || request.DurationHours <= 0)
-        {
-            return BadRequest("Activity duration must be a finite number greater than zero.");
-        }
-
         try
         {
-            var location = new GeoLocation(request.Latitude, request.Longitude);
-            var duration = TimeSpan.FromHours(request.DurationHours);
-
             var activity = await _activityManagementService.AddActivityAsync(
                 tripId,
                 request.Name,
-                category,
-                location,
-                duration,
+                request.Category,
+                request.Latitude,
+                request.Longitude,
+                request.DurationHours,
                 request.EstimatedCost,
                 request.Optional,
                 request.OpeningTime,
@@ -123,22 +102,14 @@ public class ActivityController : ControllerBase
     [HttpGet("prioritized")]
     public async Task<IActionResult> GetPrioritizedActivitiesAsync(Guid tripId)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
+        var activities = await _activityManagementService.GetPrioritizedActivitiesAsync(tripId);
 
-        if (trip is null)
+        if (activities is null)
         {
             return NotFound("Trip not found.");
         }
 
-        var activities = _activityVotingService.PrioritizeByVotes(trip.Activities);
-        var responses = new List<ActivityResponse>();
-
-        foreach (var activity in activities)
-        {
-            responses.Add(ToActivityResponse(activity));
-        }
-
-        return Ok(responses);
+        return Ok(activities.Select(ToActivityResponse).ToList());
     }
 
     [HttpGet("selected")]
@@ -147,42 +118,20 @@ public class ActivityController : ControllerBase
         [FromQuery] decimal? budget,
         [FromQuery] double? hours)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
+        var (activities, validationError) =
+            await _activityManagementService.GetSelectedActivitiesAsync(tripId, budget, hours);
 
-        if (trip is null)
+        if (validationError is not null)
+        {
+            return BadRequest(validationError);
+        }
+
+        if (activities is null)
         {
             return NotFound("Trip not found.");
         }
 
-        if (budget < 0)
-        {
-            return BadRequest("Budget must be non-negative.");
-        }
-
-        if (!hours.HasValue || !double.IsFinite(hours.Value) || hours.Value < 0)
-        {
-            return BadRequest("Hours are required and must be non-negative and finite.");
-        }
-
-        TimeSpan availableTime;
-        try
-        {
-            availableTime = TimeSpan.FromHours(hours.Value);
-        }
-        catch (OverflowException)
-        {
-            return BadRequest("Hours value is too large.");
-        }
-
-        var activities = _activityVotingService.SelectActivitiesForPlan(trip.Activities, budget, availableTime);
-        var responses = new List<ActivityResponse>();
-
-        foreach (var activity in activities)
-        {
-            responses.Add(ToActivityResponse(activity));
-        }
-
-        return Ok(responses);
+        return Ok(activities.Select(ToActivityResponse).ToList());
     }
 
     private ActivityResponse ToActivityResponse(TripActivity activity)

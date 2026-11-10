@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using TravelPlanner.Enums;
 using TravelPlanner.Requests;
-using TravelPlanner.Responses;
 using TravelPlanner.Service;
 
 namespace TravelPlanner.Controllers;
@@ -10,17 +8,10 @@ namespace TravelPlanner.Controllers;
 [Route("api/trips/{tripId}/activities/{activityId}/votes")]
 public class VotingController : ControllerBase
 {
-    private readonly TripService _tripService;
-    private readonly ActivityVotingService _activityVotingService;
     private readonly ActivityManagementService _activityManagementService;
 
-    public VotingController(
-        TripService tripService,
-        ActivityVotingService activityVotingService,
-        ActivityManagementService activityManagementService)
+    public VotingController(ActivityManagementService activityManagementService)
     {
-        _tripService = tripService;
-        _activityVotingService = activityVotingService;
         _activityManagementService = activityManagementService;
     }
 
@@ -59,36 +50,16 @@ public class VotingController : ControllerBase
         Guid activityId,
         [FromQuery] Guid? participantId = null)
     {
-        var trip = await _tripService.FindTripByIdAsync(tripId);
+        var (results, notFoundError) =
+            await _activityManagementService.GetVoteResultsAsync(
+                tripId,
+                activityId,
+                participantId);
 
-        if (trip is null)
+        if (notFoundError is not null)
         {
-            return NotFound("Trip not found.");
+            return NotFound(notFoundError);
         }
-
-        var activity = trip.Activities
-            .FirstOrDefault(candidate => candidate.Id == activityId);
-
-        if (activity is null)
-        {
-            return NotFound("Activity not found in the trip.");
-        }
-
-        var upvotes = _activityVotingService.GetUpvoteCount(activity);
-        var downvotes = _activityVotingService.GetDownvoteCount(activity);
-
-        VoteType? participantVote = null;
-
-        if (participantId.HasValue &&
-            activity.Votes.TryGetValue(participantId.Value, out var existingVote))
-        {
-            participantVote = existingVote;
-        }
-
-        var results = new VoteResultsResponse(
-            upvotes,
-            downvotes,
-            participantVote);
 
         return Ok(results);
     }
