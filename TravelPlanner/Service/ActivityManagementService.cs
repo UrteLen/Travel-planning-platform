@@ -154,6 +154,31 @@ public class ActivityManagementService
         return (results, null);
     }
 
+    public async Task<List<ScheduledActivity>?> GetScheduleAsync(
+        Guid tripId,
+        DateTime? date)
+    {
+        if (!await _db.Trips.AnyAsync(trip => trip.Id == tripId))
+        {
+            return null;
+        }
+
+        var scheduledActivities = await _db.Trips
+            .Where(trip => trip.Id == tripId)
+            .SelectMany(trip => trip.ScheduledActivities)
+            .Include(scheduledActivity => scheduledActivity.Activity)
+            .ToListAsync();
+
+        if (date.HasValue)
+        {
+            return _activitySchedulingService.GetDailySchedule(
+                scheduledActivities,
+                date.Value);
+        }
+
+        return scheduledActivities;
+    }
+
     public async Task<List<TripActivity>?> ImportActivitiesAsync(
         Guid tripId,
         Stream stream)
