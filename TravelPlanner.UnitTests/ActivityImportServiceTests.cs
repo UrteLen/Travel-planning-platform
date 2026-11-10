@@ -86,4 +86,30 @@ public class ActivityImportServiceTests
 
         Assert.Equal("Invalid duration.", exception.Message);
     }
+
+    [Fact]
+    public async Task LoadActivitiesFromJsonAsync_WhenCategoryIsUndefined_ThrowsArgumentException()
+    {
+        var json = """
+                   [
+                       {
+                           "name": "Restaurant",
+                           "category": "999",
+                           "latitude": 54.6872,
+                           "longitude": 25.2797,
+                           "durationHours": 1,
+                           "estimatedCost": 12
+                       }
+                   ]
+                   """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+        var service = new ActivityImportService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.LoadActivitiesFromJsonAsync(stream));
+
+        Assert.Equal("Invalid category.", exception.Message);
+    }
 }
