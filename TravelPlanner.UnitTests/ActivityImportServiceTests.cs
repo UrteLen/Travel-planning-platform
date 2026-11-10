@@ -35,4 +35,29 @@ public class ActivityImportServiceTests
         Assert.Equal(54.6872, activity.Location.Latitude);
         Assert.Equal(25.2797, activity.Location.Longitude);
     }
+
+    [Fact]
+    public async Task LoadActivitiesFromJsonAsync_WhenLongitudeIsMissing_ThrowsArgumentException()
+    {
+        var json = """
+                   [
+                       {
+                           "name": "Restaurant",
+                           "category": "Food",
+                           "latitude": 54.6872,
+                           "durationHours": 1,
+                           "estimatedCost": 12
+                       }
+                   ]
+                   """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+        var service = new ActivityImportService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.LoadActivitiesFromJsonAsync(stream));
+
+        Assert.Equal("Latitude and longitude are required.", exception.Message);
+    }
 }
