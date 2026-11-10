@@ -104,6 +104,22 @@ public class BudgetService
         }
     }
 
+    public async Task<BudgetSummaryResponse?> GetSummaryAsync(string tripCode)
+    {
+        var trip = await _tripService.FindTripForBudgetByCodeAsync(tripCode);
+
+        if (trip is null)
+        {
+            return null;
+        }
+
+        var results = CheckAllCategories(trip.Budget);
+        var costPerPerson = GetCostPerPerson(trip.Budget, trip.Participants.Count);
+        var totalSpent = GetTotalActualSpend(trip.Budget);
+
+        return new BudgetSummaryResponse(results, costPerPerson, totalSpent);
+    }
+
     public decimal GetTotalSpent(Budget budget, Category category)
     {
         return budget.Expenses
