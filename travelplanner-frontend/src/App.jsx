@@ -41,6 +41,7 @@ export default function App() {
   const requestIdRef = useRef(0);
   const [auth, setAuthState] = useState(getAuth());
     const [authChecked, setAuthChecked] = useState(() => !getAuth());
+  const [myTrips, setMyTrips] = useState(null);
 
   useEffect(() => {
     if (authChecked) return;
@@ -63,10 +64,41 @@ export default function App() {
       clearAuth();
       setAuthState(null);
       setCurrentTrip(null);
+      setMyTrips(null);
     }
+  useEffect(() => {
+    if (!auth || !authChecked || currentTrip) return;
+    let cancelled = false;
+    const session = sessionRef.current;
+    fetch(`${API_BASE}/trip/mine`)
+      .then(res => (res.ok ? res.json() : []))
+      .then(list => { if (!cancelled && session === sessionRef.current) setMyTrips(list); })
+      .catch(() => { if (!cancelled) setMyTrips([]); });
+    return () => { cancelled = true; };
+  }, [auth, authChecked, currentTrip]);
+
+  async function openMyTrip(id) {
+    const session = sessionRef.current;
+    setErrorMessage('');
+    try {
+      const res = await fetch(`${API_BASE}/trip/${id}`);
+      if (!res.ok) throw new Error(await readError(res));
+      const data = await res.json();
+      if (session !== sessionRef.current) return;
+      handleTripLoaded(data, auth.displayName);
+    } catch (err) {
+      if (session === sessionRef.current) setErrorMessage(err.message);
+    }
+  }
+
+  let lastTripId = null;
+  try { lastTripId = localStorage.getItem('tp_last_trip'); } catch { /* ignore */ }
+  const lastTrip = (myTrips || []).find(t => t.id === lastTripId);
+
   const today = new Date().toLocaleDateString('en-CA');
 
   function handleTripLoaded(tripData, preferredParticipantName = '') {
+    try { localStorage.setItem('tp_last_trip', tripData.id); } catch { /* ignore */ }
     const people = Object.values(tripData?.participants || []);
 
     const preferred = preferredParticipantName
@@ -176,7 +208,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/trip/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inviteCode, participantName })
+        body: JSON.stringify({ inviteCode, participantName, linkToAccount: true })
       });
       if (!res.ok) throw new Error(await readError(res));
       const data = await res.json();
@@ -440,6 +472,35 @@ async function handleGeneratePlan(e) {
         <h1>Travel Planner</h1>
         <p className="subtitle">Organize group trips, track expenses, and build optimized itineraries easily.</p>
         <p className="trip-meta">Signed in as <strong>{auth.displayName}</strong> <button onClick={logout} className="btn-secondary">Log out</button></p>
+
+        <div className="card">
+          <h2>My account: {auth.displayName}</h2>
+          {lastTrip && (
+            <p>
+              <button className="btn-primary" onClick={() => openMyTrip(lastTrip.id)}>
+                Continue: {lastTrip.name}
+              </button>
+            </p>
+          )}
+          {myTrips === null ? (
+            <p className="text-muted">Loading your trips...</p>
+          ) : myTrips.length === 0 ? (
+            <p className="text-muted">You have no trips yet. Create one below or join with an invite code.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {myTrips.map(t => (
+                <li key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #e5e5e5' }}>
+                  <span>
+                    <strong>{t.name}</strong> – {t.destination}
+                    <br />
+                    <span className="text-muted">{t.startDate.slice(0, 10)} → {t.endDate.slice(0, 10)} · {t.role} · code {t.inviteCode}</span>
+                  </span>
+                  <button className="btn-secondary" onClick={() => openMyTrip(t.id)}>Open</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
            {errorMessage && (
      <div className={`error-banner ${errorMessage.startsWith('Warning') ? 'is-warning' : ''}`} role="alert">
        {errorMessage}
