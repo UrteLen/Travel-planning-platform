@@ -20,20 +20,12 @@ public class ScheduleController : ControllerBase
         Guid tripId,
         [FromBody] ScheduleActivityRequest request)
     {
-        if (request.ActivityId == Guid.Empty ||
-            request.StartTime == default ||
-            !double.IsFinite(request.SpeedKmh) ||
-            request.SpeedKmh <= 0)
-        {
-            return BadRequest("Valid ActivityId, StartTime and positive SpeedKmh are required.");
-        }
-
         try
         {
             var scheduledActivity = await _activityManagementService.ScheduleActivityAsync(
                 tripId,
                 request.ActivityId,
-                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
+                request.StartTime,
                 request.SpeedKmh);
 
             return Ok(scheduledActivity);
@@ -101,7 +93,7 @@ public class ScheduleController : ControllerBase
             var scheduledActivity = await _activityManagementService.UpdateScheduledActivityAsync(
                 tripId,
                 scheduledActivityId,
-                DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
+                request.StartTime,
                 request.SpeedKmh);
 
             return Ok(scheduledActivity);

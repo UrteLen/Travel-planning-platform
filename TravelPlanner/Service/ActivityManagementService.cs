@@ -251,6 +251,15 @@ public class ActivityManagementService
         DateTime startTime,
         double speedKmh)
     {
+        if (activityId == Guid.Empty
+            || startTime == default
+            || !double.IsFinite(speedKmh)
+            || speedKmh <= 0)
+        {
+            throw new ArgumentException(
+                "Valid ActivityId, StartTime and positive SpeedKmh are required.");
+        }
+
         await using var transaction =
             await _db.Database.BeginTransactionAsync();
 
@@ -262,7 +271,10 @@ public class ActivityManagementService
             ?? throw new KeyNotFoundException("Activity not found in the trip.");
 
         var scheduledActivity = _activitySchedulingService.ScheduleActivity(
-            trip, activity, startTime, speedKmh);
+            trip,
+            activity,
+            DateTime.SpecifyKind(startTime, DateTimeKind.Unspecified),
+            speedKmh);
 
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
@@ -302,7 +314,10 @@ public class ActivityManagementService
             ?? throw new KeyNotFoundException("Trip not found.");
 
         var scheduledActivity = _activitySchedulingService.UpdateScheduledActivity(
-            trip, scheduledActivityId, startTime, speedKmh);
+            trip,
+            scheduledActivityId,
+            DateTime.SpecifyKind(startTime, DateTimeKind.Unspecified),
+            speedKmh);
 
         await _db.SaveChangesAsync();
         await transaction.CommitAsync();
