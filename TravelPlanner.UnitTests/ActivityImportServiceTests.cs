@@ -1,0 +1,38 @@
+using System.Text;
+using TravelPlanner.Enums;
+using TravelPlanner.Service;
+
+namespace TravelPlanner.UnitTests;
+
+public class ActivityImportServiceTests
+{
+    [Fact]
+    public async Task LoadActivitiesFromJsonAsync_WhenJsonContainsOneValidActivity_ReturnsMappedActivity()
+    {
+        var json = """
+                   [
+                       {
+                           "name": "Restaurant",
+                           "category": "Food",
+                           "latitude": 54.6872,
+                           "longitude": 25.2797,
+                           "durationHours": 1,
+                           "estimatedCost": 12
+                       }
+                   ]
+                   """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+        var service = new ActivityImportService();
+        var activities = await service.LoadActivitiesFromJsonAsync(stream);
+
+        var activity = Assert.Single(activities);
+        Assert.Equal("Restaurant", activity.Name);
+        Assert.Equal(Category.Food, activity.Category);
+        Assert.Equal(TimeSpan.FromHours(1), activity.Duration);
+        Assert.Equal(12m, activity.EstimatedCost);
+        Assert.Equal(54.6872, activity.Location.Latitude);
+        Assert.Equal(25.2797, activity.Location.Longitude);
+    }
+}
