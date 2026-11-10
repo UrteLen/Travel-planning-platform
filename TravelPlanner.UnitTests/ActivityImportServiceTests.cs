@@ -60,4 +60,30 @@ public class ActivityImportServiceTests
 
         Assert.Equal("Latitude and longitude are required.", exception.Message);
     }
+
+    [Fact]
+    public async Task LoadActivitiesFromJsonAsync_WhenDurationIsZero_ThrowsArgumentException()
+    {
+        var json = """
+                   [
+                       {
+                           "name": "Restaurant",
+                           "category": "Food",
+                           "latitude": 54.6872,
+                           "longitude": 25.2797,
+                           "durationHours": 0,
+                           "estimatedCost": 12
+                       }
+                   ]
+                   """;
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+        var service = new ActivityImportService();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.LoadActivitiesFromJsonAsync(stream));
+
+        Assert.Equal("Invalid duration.", exception.Message);
+    }
 }
