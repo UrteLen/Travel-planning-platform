@@ -37,6 +37,32 @@ namespace TravelPlanner.Migrations
                     b.ToTable("Budget");
                 });
 
+            modelBuilder.Entity("TravelPlanner.Models.ChecklistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ParticipantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParticipantId");
+
+                    b.ToTable("ChecklistItems");
+                });
+
             modelBuilder.Entity("TravelPlanner.Models.ExpenseEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -325,6 +351,15 @@ namespace TravelPlanner.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("TravelPlanner.Models.ChecklistItem", b =>
+                {
+                    b.HasOne("TravelPlanner.Models.Participant", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TravelPlanner.Models.ExpenseEntry", b =>

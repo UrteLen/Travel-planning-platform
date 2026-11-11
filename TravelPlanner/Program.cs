@@ -47,6 +47,8 @@ builder.Services.AddScoped<DayPlanningService>();
 builder.Services.AddScoped<PlanService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ChecklistService>();
+builder.Services.AddExceptionHandler<ChecklistExceptionHandler>();
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddExceptionHandler<AuthExceptionHandler>();
 var jwtKey = builder.Configuration["Jwt:Key"];

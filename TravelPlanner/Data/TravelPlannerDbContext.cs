@@ -16,6 +16,7 @@ public class TravelPlannerDbContext : DbContext
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<StoredTripVersion> TripVersions => Set<StoredTripVersion>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -88,11 +89,23 @@ public class TravelPlannerDbContext : DbContext
         modelBuilder.Entity<PlannedVisit>().Property(v => v.ArrivalTime).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<PlannedVisit>().Property(v => v.DepartureTime).HasColumnType("timestamp without time zone");
         modelBuilder.Entity<User>().Property(u => u.Id).ValueGeneratedNever();
+        modelBuilder.Entity<ChecklistItem>().Property(i => i.Id).ValueGeneratedNever();
         modelBuilder.Entity<User>().HasIndex(u=>u.Email).IsUnique();
         modelBuilder.Entity<Participant>()
             .HasOne<User>()
             .WithMany()
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        
+        // A checklist item belongs to one participant; deleting the participant deletes their items.
+        modelBuilder.Entity<ChecklistItem>().Property(i => i.Text).HasMaxLength(ChecklistItem.MaxTextLength);
+        modelBuilder.Entity<ChecklistItem>()
+            .HasOne<Participant>()
+            .WithMany()
+            .HasForeignKey(i => i.ParticipantId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ChecklistItem>().HasIndex(i => i.ParticipantId);
     }
 }
