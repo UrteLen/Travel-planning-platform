@@ -11,7 +11,7 @@ namespace TravelPlanner.IntegrationTests;
 public class ActivitySchedulingIntegrationTests
 {
     [Fact]
-    public async Task ScheduleActivity_WhenScheduled_AppearsInDailySchedule()
+    public async Task ScheduledActivity_CanBeCreatedUpdatedAndDeleted()
     {
         using var client = new HttpClient();
         client.BaseAddress = new Uri("https://localhost:7257");
@@ -111,6 +111,21 @@ public class ActivitySchedulingIntegrationTests
         var updatedActivity = Assert.Single(updatedSchedule);
         Assert.Equal(scheduledActivityId, updatedActivity.GetProperty("id").GetGuid());
         Assert.Equal(updatedStartTime, updatedActivity.GetProperty("startTime").GetDateTime());
+
+        using var deleteResponse = await client.DeleteAsync(
+            $"/api/trips/{tripId}/scheduled-activities/{scheduledActivityId}",
+            cancellationToken);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        using var scheduleAfterDeleteResponse = await client.GetAsync(
+            $"/api/trips/{tripId}/scheduled-activities?date={date}",
+            cancellationToken);
+        scheduleAfterDeleteResponse.EnsureSuccessStatusCode();
+
+        var scheduleAfterDelete = await scheduleAfterDeleteResponse.Content
+            .ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+        Assert.NotNull(scheduleAfterDelete);
+        Assert.Empty(scheduleAfterDelete);
     }
 
     private static async Task<string> RegisterTestUserAsync(
