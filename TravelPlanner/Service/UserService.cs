@@ -53,9 +53,15 @@ public class UserService
         return user;
     }
 
-    public async Task<User> LoginAsync(string email, string password)
+    public async Task<User> LoginAsync(string email, string password, string clientAddress)
     {
         var normalizedEmail = NormalizeEmail(email);
+        var attemptKey = $"{normalizedEmail}|{clientAddress}";
+
+        if (!_loginAttempts.TryReserveAttempt(attemptKey))
+        {
+            throw new TooManyLoginAttemptsException();
+        }
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail)
             ?? throw new InvalidCredentialsException();
@@ -66,11 +72,20 @@ public class UserService
             throw new InvalidCredentialsException();
         }
 
+        _loginAttempts.Reset(attemptKey);
         return user;
     }
 
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToLowerInvariant();
+    }
+    private readonly LoginAttemptTracker _loginAttempts;
+
+    public UserService(TravelPlannerDbContext db, IPasswordHasher<User> passwordHasher, LoginAttemptTracker loginAttempts)
+    {
+        _db = db;
+        _passwordHasher = passwordHasher;
+        _loginAttempts = loginAttempts;
     }
 }
