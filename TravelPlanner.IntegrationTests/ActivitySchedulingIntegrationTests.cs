@@ -88,6 +88,29 @@ public class ActivitySchedulingIntegrationTests
         var scheduledActivity = Assert.Single(dailySchedule);
         Assert.Equal(activity.Id, scheduledActivity.GetProperty("activity").GetProperty("id").GetGuid());
         Assert.Equal(startTime, scheduledActivity.GetProperty("startTime").GetDateTime());
+
+        var scheduledActivityId = scheduledActivity.GetProperty("id").GetGuid();
+        var updatedStartTime = startTime.AddHours(1);
+        var updateRequest = new UpdateScheduledActivityRequest(updatedStartTime, 40);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/trips/{tripId}/scheduled-activities/{scheduledActivityId}",
+            updateRequest,
+            cancellationToken);
+        updateResponse.EnsureSuccessStatusCode();
+
+        using var updatedScheduleResponse = await client.GetAsync(
+            $"/api/trips/{tripId}/scheduled-activities?date={date}",
+            cancellationToken);
+        updatedScheduleResponse.EnsureSuccessStatusCode();
+
+        var updatedSchedule = await updatedScheduleResponse.Content
+            .ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+        Assert.NotNull(updatedSchedule);
+
+        var updatedActivity = Assert.Single(updatedSchedule);
+        Assert.Equal(scheduledActivityId, updatedActivity.GetProperty("id").GetGuid());
+        Assert.Equal(updatedStartTime, updatedActivity.GetProperty("startTime").GetDateTime());
     }
 
     private static async Task<string> RegisterTestUserAsync(
