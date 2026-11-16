@@ -11,11 +11,16 @@ public class UserService
 {
     private readonly TravelPlannerDbContext _db;
     private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly LoginAttemptTracker _loginAttempts;
 
-    public UserService(TravelPlannerDbContext db, IPasswordHasher<User> passwordHasher)
+    public UserService(
+        TravelPlannerDbContext db,
+        IPasswordHasher<User> passwordHasher,
+        LoginAttemptTracker loginAttempts)
     {
         _db = db;
         _passwordHasher = passwordHasher;
+        _loginAttempts = loginAttempts;
     }
 
     public async Task<User> RegisterAsync(string email, string displayName, string password)
@@ -79,13 +84,5 @@ public class UserService
     private static string NormalizeEmail(string email)
     {
         return email.Trim().ToLowerInvariant();
-    }
-    private readonly LoginAttemptTracker _loginAttempts;
-
-    public UserService(TravelPlannerDbContext db, IPasswordHasher<User> passwordHasher, LoginAttemptTracker loginAttempts)
-    {
-        _db = db;
-        _passwordHasher = passwordHasher;
-        _loginAttempts = loginAttempts;
     }
 }
