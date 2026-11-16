@@ -49,6 +49,8 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddExceptionHandler<AuthExceptionHandler>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<LoginAttemptTracker>();
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
 {

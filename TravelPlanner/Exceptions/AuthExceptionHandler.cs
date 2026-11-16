@@ -20,6 +20,7 @@ public class AuthExceptionHandler : IExceptionHandler
         {
             InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Invalid email or password"),
             EmailAlreadyRegisteredException => (StatusCodes.Status409Conflict, "Email is already registered"),
+            TooManyLoginAttemptsException => (StatusCodes.Status429TooManyRequests, "Too many login attempts. Try again later."),
             _ => (0, string.Empty)
         };
 

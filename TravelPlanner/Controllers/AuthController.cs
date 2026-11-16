@@ -40,8 +40,10 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> LoginAsync(LoginRequest request)
     {
-        var user = await _userService.LoginAsync(request.Email, request.Password);
-
+        var user = await _userService.LoginAsync(
+        request.Email,
+        request.Password,
+        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
         return Ok(new AuthResponse(_tokenService.CreateToken(user), user.Id, user.DisplayName));
     }
 

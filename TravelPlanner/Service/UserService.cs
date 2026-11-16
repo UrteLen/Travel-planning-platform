@@ -11,11 +11,16 @@ public class UserService
 {
     private readonly TravelPlannerDbContext _db;
     private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly LoginAttemptTracker _loginAttempts;
 
-    public UserService(TravelPlannerDbContext db, IPasswordHasher<User> passwordHasher)
+    public UserService(
+        TravelPlannerDbContext db,
+        IPasswordHasher<User> passwordHasher,
+        LoginAttemptTracker loginAttempts)
     {
         _db = db;
         _passwordHasher = passwordHasher;
+        _loginAttempts = loginAttempts;
     }
 
     public async Task<User> RegisterAsync(string email, string displayName, string password)
@@ -53,9 +58,15 @@ public class UserService
         return user;
     }
 
-    public async Task<User> LoginAsync(string email, string password)
+    public async Task<User> LoginAsync(string email, string password, string clientAddress)
     {
         var normalizedEmail = NormalizeEmail(email);
+        var attemptKey = $"{normalizedEmail}|{clientAddress}";
+
+        if (!_loginAttempts.TryReserveAttempt(attemptKey))
+        {
+            throw new TooManyLoginAttemptsException();
+        }
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail)
             ?? throw new InvalidCredentialsException();
@@ -66,6 +77,7 @@ public class UserService
             throw new InvalidCredentialsException();
         }
 
+        _loginAttempts.Reset(attemptKey);
         return user;
     }
 
