@@ -4,12 +4,14 @@ using TravelPlanner.Enums;
 using TravelPlanner.Exceptions;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
+using Npgsql;
 
 namespace TravelPlanner.Service;
 
 public class ChecklistService
 {
     private readonly TravelPlannerDbContext _db;
+    private const string UniqueTextIndexName = "UX_ChecklistItems_ParticipantId_Category_LowerText";
 
     public ChecklistService(TravelPlannerDbContext db)
     {
@@ -48,7 +50,20 @@ public class ChecklistService
         }
 
         _db.ChecklistItems.Add(item);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: UniqueTextIndexName
+            })
+        {
+            throw new DuplicateChecklistItemException(item.Text);
+        }
 
         return ToResponse(item);
     }
