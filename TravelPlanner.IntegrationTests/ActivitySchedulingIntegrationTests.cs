@@ -11,7 +11,7 @@ namespace TravelPlanner.IntegrationTests;
 public class ActivitySchedulingIntegrationTests
 {
     [Fact]
-    public async Task ScheduleActivity_WhenScheduled_AppearsInDailySchedule()
+    public async Task ScheduledActivity_CanBeCreatedUpdatedAndDeleted()
     {
         using var client = new HttpClient();
         client.BaseAddress = new Uri("https://localhost:7257");
@@ -88,6 +88,44 @@ public class ActivitySchedulingIntegrationTests
         var scheduledActivity = Assert.Single(dailySchedule);
         Assert.Equal(activity.Id, scheduledActivity.GetProperty("activity").GetProperty("id").GetGuid());
         Assert.Equal(startTime, scheduledActivity.GetProperty("startTime").GetDateTime());
+
+        var scheduledActivityId = scheduledActivity.GetProperty("id").GetGuid();
+        var updatedStartTime = startTime.AddHours(1);
+        var updateRequest = new UpdateScheduledActivityRequest(updatedStartTime, 40);
+
+        using var updateResponse = await client.PutAsJsonAsync(
+            $"/api/trips/{tripId}/scheduled-activities/{scheduledActivityId}",
+            updateRequest,
+            cancellationToken);
+        updateResponse.EnsureSuccessStatusCode();
+
+        using var updatedScheduleResponse = await client.GetAsync(
+            $"/api/trips/{tripId}/scheduled-activities?date={date}",
+            cancellationToken);
+        updatedScheduleResponse.EnsureSuccessStatusCode();
+
+        var updatedSchedule = await updatedScheduleResponse.Content
+            .ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+        Assert.NotNull(updatedSchedule);
+
+        var updatedActivity = Assert.Single(updatedSchedule);
+        Assert.Equal(scheduledActivityId, updatedActivity.GetProperty("id").GetGuid());
+        Assert.Equal(updatedStartTime, updatedActivity.GetProperty("startTime").GetDateTime());
+
+        using var deleteResponse = await client.DeleteAsync(
+            $"/api/trips/{tripId}/scheduled-activities/{scheduledActivityId}",
+            cancellationToken);
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        using var scheduleAfterDeleteResponse = await client.GetAsync(
+            $"/api/trips/{tripId}/scheduled-activities?date={date}",
+            cancellationToken);
+        scheduleAfterDeleteResponse.EnsureSuccessStatusCode();
+
+        var scheduleAfterDelete = await scheduleAfterDeleteResponse.Content
+            .ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+        Assert.NotNull(scheduleAfterDelete);
+        Assert.Empty(scheduleAfterDelete);
     }
 
     private static async Task<string> RegisterTestUserAsync(
