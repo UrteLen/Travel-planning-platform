@@ -1,5 +1,6 @@
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
+using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service;
 
@@ -21,8 +22,7 @@ public class ActivityVotingService
             throw new KeyNotFoundException("Participant not found in this trip.");
         }
 
-        var activity = trip.Activities
-            .FirstOrDefault(candidate => candidate.Id == activityId);
+        var activity = trip.Activities.FindById(activityId);
 
         if (activity == null)
         {
@@ -49,8 +49,7 @@ public class ActivityVotingService
             throw new KeyNotFoundException("Participant not found in this trip.");
         }
 
-        var activity = trip.Activities
-            .FirstOrDefault(candidate => candidate.Id == activityId);
+        var activity = trip.Activities.FindById(activityId);
 
         if (activity == null)
         {

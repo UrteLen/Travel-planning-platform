@@ -103,7 +103,7 @@ public class SettlementService
 
     private static string GetParticipantName(Trip trip, Guid participantId)
     {
-        var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == participantId);
+        var participant = trip.Participants.FindById(participantId);
         return participant?.Name ?? "Unknown participant";
     }
 }

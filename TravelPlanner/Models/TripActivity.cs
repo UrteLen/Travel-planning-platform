@@ -2,7 +2,7 @@ using TravelPlanner.Enums;
 
 namespace TravelPlanner.Models;
 
-public class TripActivity
+public class TripActivity : IHasId
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;

@@ -164,8 +164,7 @@ public class ActivitySchedulingService
 
     public bool RemoveScheduledActivity(Trip trip, Guid scheduledActivityId)
     {
-        var scheduledActivity = trip.ScheduledActivities
-            .FirstOrDefault(activity => activity.Id == scheduledActivityId);
+        var scheduledActivity = trip.ScheduledActivities.FindById(scheduledActivityId);
 
         if (scheduledActivity == null)
         {
@@ -181,8 +180,7 @@ public class ActivitySchedulingService
         DateTime newStartTime,
         double speedKmh)
     {
-        var scheduledActivity = trip.ScheduledActivities
-            .FirstOrDefault(activity => activity.Id == scheduledActivityId);
+        var scheduledActivity = trip.ScheduledActivities.FindById(scheduledActivityId);
 
         if (scheduledActivity == null)
         {
