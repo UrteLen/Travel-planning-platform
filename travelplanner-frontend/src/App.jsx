@@ -6,6 +6,7 @@ import HistoryPanel from './components/HistoryPanel';
 import SummaryPanel from './components/SummaryPanel';
 import BudgetAlerts from './components/BudgetAlerts';
 import SettlementsPanel from './components/SettlementsPanel';
+import ChecklistPanel from './components/ChecklistPanel';
 import { readError } from './apiError';
 import HelpTip from './components/HelpTip';
 import AuthPanel from './components/AuthPanel';
@@ -574,7 +575,7 @@ async function handleGeneratePlan(e) {
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
       <div className="tabs">
-        {['overview', 'participants', 'categories', 'expenses', 'activities', 'itinerary', 'calendar', 'settlements', 'history', 'summary'].map(tab => (
+        {['overview', 'participants', 'categories', 'expenses', 'activities', 'itinerary', 'calendar', 'settlements', 'checklist', 'history', 'summary'].map(tab => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setErrorMessage(''); }}
@@ -856,6 +857,10 @@ async function handleGeneratePlan(e) {
 
         {activeTab === 'settlements' && (
           <SettlementsPanel apiBase={API_BASE} trip={currentTrip} />
+        )}
+
+        {activeTab === 'checklist' && (
+          <ChecklistPanel apiBase={API_BASE} trip={currentTrip} />
         )}
       </div>
     </div>
