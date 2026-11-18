@@ -33,7 +33,7 @@ public class PdfExportService
                     }
 
                     column.Item().PaddingTop(10).Text("Itinerary").Bold();
-                    foreach (var visit in summary.Itinerary)
+                    foreach (var visit in summary.Itinerary.Order())
                     {
                         column.Item().Text($"{visit.ArrivalTime:t} - {visit.DepartureTime:t}: {visit.Place.Name}");
                     }
