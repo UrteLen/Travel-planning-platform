@@ -3,6 +3,7 @@ using TravelPlanner.Data;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
+using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service;
 
@@ -40,8 +41,7 @@ public class ActivityManagementService
         TimeSpan? openingTime = null,
         TimeSpan? closingTime = null)
     {
-        if (!Enum.TryParse<Category>(category, true, out var parsedCategory)
-            || !Enum.IsDefined(parsedCategory))
+        if (!EnumParser<Category>.TryParseDefined(category, out var parsedCategory))
         {
             throw new ArgumentException("Invalid category.");
         }
@@ -282,9 +282,8 @@ public class ActivityManagementService
         var trip = await FindTripForUpdateAsync(tripId)
             ?? throw new KeyNotFoundException("Trip not found.");
 
-        var activity = trip.Activities
-            .FirstOrDefault(candidate => candidate.Id == activityId)
-            ?? throw new KeyNotFoundException("Activity not found in the trip.");
+        var activity = trip.Activities.FindById(activityId)
+        ?? throw new KeyNotFoundException("Activity not found in the trip.");
 
         var scheduledActivity = _activitySchedulingService.ScheduleActivity(
             trip,

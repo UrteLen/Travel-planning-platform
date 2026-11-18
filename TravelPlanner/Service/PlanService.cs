@@ -3,6 +3,7 @@ using TravelPlanner.Data;
 using TravelPlanner.Enums;
 using TravelPlanner.Models;
 using TravelPlanner.Responses;
+using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service;
 
@@ -141,7 +142,7 @@ public class PlanService
 
         foreach (var expense in snapshot.Expenses)
         {
-            var participant = trip.Participants.FirstOrDefault(p => p.Id == expense.Participant.Id);
+            var participant = trip.Participants.FindById(expense.Participant.Id);
             if (participant is not null)
             {
                 trip.Budget.Expenses.Add(new ExpenseEntry(expense.Amount, expense.Category, expense.Date, participant));
@@ -158,7 +159,7 @@ public class PlanService
 
         foreach (var saved in snapshot)
         {
-            var current = trip.Activities.FirstOrDefault(a => a.Id == saved.Id);
+            var current = trip.Activities.FindById(saved.Id);
             if (current is null)
             {
                 trip.Activities.Add(saved.Clone());

@@ -2,6 +2,7 @@ using System.Text.Json;
 using TravelPlanner.Enums;
 using TravelPlanner.Imports;
 using TravelPlanner.Models;
+using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service;
 
@@ -29,8 +30,7 @@ public class ActivityImportService
                 throw new ArgumentException("Activity cannot be null.");
             }
 
-            if (!Enum.TryParse<Category>(dto.Category, true, out var category)
-                || !Enum.IsDefined(category))
+            if (!EnumParser<Category>.TryParseDefined(dto.Category, out var category))
             {
                 throw new ArgumentException("Invalid category.");
             }

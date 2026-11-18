@@ -1,6 +1,6 @@
 namespace TravelPlanner.Models;
 
-public class ScheduledActivity
+public class ScheduledActivity : IHasId
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public TripActivity Activity { get; set; }

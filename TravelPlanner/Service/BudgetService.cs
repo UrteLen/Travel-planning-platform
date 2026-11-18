@@ -34,7 +34,7 @@ public class BudgetService
             var parsed = new Dictionary<Category, decimal>();
             foreach (var pair in categoryLimits)
             {
-                if (!Enum.TryParse<Category>(pair.Key, true, out var category) || !Enum.IsDefined(category))
+                if (!EnumParser<Category>.TryParseDefined(pair.Key, out var category))
                 {
                     return (true, $"Unknown category: {pair.Key}");
                 }
@@ -73,7 +73,7 @@ public class BudgetService
             return "Amount must be greater than 0";
         }
 
-        if (!Enum.TryParse<Category>(category, true, out var parsedCategory))
+        if (!EnumParser<Category>.TryParseDefined(category, out var parsedCategory))
         {
             return "Invalid category";
         }
@@ -87,7 +87,7 @@ public class BudgetService
 
         try
         {
-            var participant = trip.Participants.FirstOrDefault(candidate => candidate.Id == participantId);
+            var participant = trip.Participants.FindById(participantId);
             if (participant is null)
             {
                 return "Participant not found";
