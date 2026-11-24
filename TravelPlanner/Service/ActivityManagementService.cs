@@ -7,7 +7,7 @@ using TravelPlanner.Extensions;
 
 namespace TravelPlanner.Service;
 
-public class ActivityManagementService
+public class ActivityManagementService : IActivityScheduleService, ITripActivityService, IActivityVotingService
 {
     private readonly TravelPlannerDbContext _db;
     private readonly ActivityService _activityService;

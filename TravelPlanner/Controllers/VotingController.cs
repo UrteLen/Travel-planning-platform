@@ -8,9 +8,9 @@ namespace TravelPlanner.Controllers;
 [Route("api/trips/{tripId}/activities/{activityId}/votes")]
 public class VotingController : ControllerBase
 {
-    private readonly ActivityManagementService _activityManagementService;
+    private readonly IActivityVotingService _activityManagementService;
 
-    public VotingController(ActivityManagementService activityManagementService)
+    public VotingController(IActivityVotingService activityManagementService)
     {
         _activityManagementService = activityManagementService;
     }

@@ -11,9 +11,9 @@ namespace TravelPlanner.Controllers;
 [Route("api/trips/{tripId}/activities")]
 public class ActivityController : ControllerBase
 {
-    private readonly ActivityManagementService _activityManagementService;
+    private readonly ITripActivityService _activityManagementService;
 
-    public ActivityController(ActivityManagementService activityManagementService)
+    public ActivityController(ITripActivityService activityManagementService)
     {
         _activityManagementService = activityManagementService;
     }

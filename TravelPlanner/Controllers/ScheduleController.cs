@@ -8,9 +8,9 @@ namespace TravelPlanner.Controllers;
 [Route("api/trips/{tripId}/scheduled-activities")]
 public class ScheduleController : ControllerBase
 {
-    private readonly ActivityManagementService _activityManagementService;
+    private readonly IActivityScheduleService _activityManagementService;
 
-    public ScheduleController(ActivityManagementService activityManagementService)
+    public ScheduleController(IActivityScheduleService activityManagementService)
     {
         _activityManagementService = activityManagementService;
     }
