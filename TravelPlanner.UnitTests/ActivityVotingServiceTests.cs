@@ -153,4 +153,109 @@ public class ActivityVotingServiceTests
         var selectedActivity = Assert.Single(selectedActivities);
         Assert.Equal(higherScoreActivity.Id, selectedActivity.Id);
     }
+
+    [Fact]
+    public void Vote_WhenParticipantChangesVote_ReplacesPreviousVote()
+    {
+        var participant = new Participant { Name = "Voter" };
+        var activity = CreateActivity();
+        var trip = new Trip();
+        trip.Participants.Add(participant);
+        trip.Activities.Add(activity);
+        var service = new ActivityVotingService();
+
+        service.Vote(trip, participant.Id, activity.Id, VoteType.Upvote);
+        service.Vote(trip, participant.Id, activity.Id, VoteType.Downvote);
+
+        Assert.Single(activity.Votes);
+        Assert.Equal(0, service.GetUpvoteCount(activity));
+        Assert.Equal(1, service.GetDownvoteCount(activity));
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Vote_WhenParticipantOrActivityIsMissing_DoesNotAddVote(
+        bool participantExists,
+        bool activityExists)
+    {
+        var participant = new Participant { Name = "Voter" };
+        var activity = CreateActivity();
+        var trip = new Trip();
+        if (participantExists)
+        {
+            trip.Participants.Add(participant);
+        }
+        if (activityExists)
+        {
+            trip.Activities.Add(activity);
+        }
+        var service = new ActivityVotingService();
+
+        Assert.Throws<KeyNotFoundException>(() =>
+            service.Vote(trip, participant.Id, activity.Id, VoteType.Upvote));
+
+        Assert.Empty(activity.Votes);
+    }
+
+    [Fact]
+    public void Vote_WhenVoteTypeIsUndefined_DoesNotChangeExistingVote()
+    {
+        var participant = new Participant { Name = "Voter" };
+        var activity = CreateActivity();
+        var trip = new Trip();
+        trip.Participants.Add(participant);
+        trip.Activities.Add(activity);
+        activity.Votes[participant.Id] = VoteType.Upvote;
+        var service = new ActivityVotingService();
+
+        Assert.Throws<ArgumentException>(() =>
+            service.Vote(trip, participant.Id, activity.Id, (VoteType)999));
+
+        Assert.Equal(VoteType.Upvote, Assert.Single(activity.Votes).Value);
+    }
+
+    [Fact]
+    public void RemoveVote_WhenVoteExists_RemovesOnlyRequestedParticipantsVote()
+    {
+        var participant = new Participant { Name = "Voter" };
+        var activity = CreateActivity();
+        var otherParticipantId = Guid.NewGuid();
+        var trip = new Trip();
+        trip.Participants.Add(participant);
+        trip.Activities.Add(activity);
+        activity.Votes[participant.Id] = VoteType.Upvote;
+        activity.Votes[otherParticipantId] = VoteType.Downvote;
+        var service = new ActivityVotingService();
+
+        Assert.True(service.RemoveVote(trip, participant.Id, activity.Id));
+        Assert.False(service.RemoveVote(trip, participant.Id, activity.Id));
+        Assert.Equal(otherParticipantId, Assert.Single(activity.Votes).Key);
+    }
+
+    [Fact]
+    public void PrioritizeByVotes_WhenNetScoresTie_PrefersMoreUpvotes()
+    {
+        var fewerVotes = CreateActivity();
+        var moreVotes = CreateActivity();
+        fewerVotes.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        moreVotes.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        moreVotes.Votes[Guid.NewGuid()] = VoteType.Upvote;
+        moreVotes.Votes[Guid.NewGuid()] = VoteType.Downvote;
+        var service = new ActivityVotingService();
+
+        var prioritized = service.PrioritizeByVotes(new[] { fewerVotes, moreVotes });
+
+        Assert.Equal(new[] { moreVotes.Id, fewerVotes.Id }, prioritized.Select(activity => activity.Id));
+    }
+
+    private static TripActivity CreateActivity()
+    {
+        return new TripActivity(
+            "Museum",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            estimatedCost: 12m);
+    }
 }

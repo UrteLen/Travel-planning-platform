@@ -112,4 +112,49 @@ public class ActivityImportServiceTests
 
         Assert.Equal("Invalid category.", exception.Message);
     }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void ConvertToActivities_WhenDurationIsInvalid_RejectsActivity(double durationHours)
+    {
+        var imported = new TravelPlanner.Imports.ActivityImportData
+        {
+            Name = "Museum",
+            Category = "Activities",
+            Latitude = 54.6872,
+            Longitude = 25.2797,
+            DurationHours = durationHours
+        };
+        var service = new ActivityImportService();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            service.ConvertToActivities(new[] { imported }));
+
+        Assert.Equal("Invalid duration.", exception.Message);
+    }
+
+    [Fact]
+    public async Task LoadActivitiesFromJsonAsync_WhenJsonIsMalformed_ThrowsJsonException()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("[invalid"));
+        var service = new ActivityImportService();
+
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(() =>
+            service.LoadActivitiesFromJsonAsync(stream));
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("null")]
+    public async Task LoadActivitiesFromJsonAsync_WhenNoActivities_ReturnsEmptyList(string json)
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var service = new ActivityImportService();
+
+        var activities = await service.LoadActivitiesFromJsonAsync(stream);
+
+        Assert.Empty(activities);
+    }
 }
