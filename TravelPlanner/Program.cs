@@ -34,6 +34,12 @@ builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
 builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<ActivityManagementService>();
+builder.Services.AddScoped<IActivityVotingService>(services =>
+    services.GetRequiredService<ActivityManagementService>());
+builder.Services.AddScoped<ITripActivityService>(services =>
+    services.GetRequiredService<ActivityManagementService>());
+builder.Services.AddScoped<IActivityScheduleService>(services =>
+    services.GetRequiredService<ActivityManagementService>());
 builder.Services.AddScoped<ActivitySchedulingService>();
 builder.Services.AddScoped<ActivityVotingService>();
 builder.Services.AddScoped<BudgetService>();

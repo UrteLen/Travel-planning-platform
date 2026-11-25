@@ -226,4 +226,122 @@ public class ActivitySchedulingServiceTests
         Assert.Same(scheduledActivity, Assert.Single(firstDaySchedule));
         Assert.Same(scheduledActivity, Assert.Single(secondDaySchedule));
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void ScheduleActivity_WhenSpeedIsInvalid_DoesNotAddActivity(double speed)
+    {
+        var trip = CreateTrip();
+        var service = new ActivitySchedulingService();
+
+        Assert.Throws<ArgumentException>(() => service.ScheduleActivity(
+            trip, CreateActivity(), trip.StartDate.AddHours(10), speed));
+
+        Assert.Empty(trip.ScheduledActivities);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(24)]
+    public void ScheduleActivity_WhenOutsideTrip_DoesNotAddActivity(int startHour)
+    {
+        var trip = CreateTrip();
+        var service = new ActivitySchedulingService();
+
+        Assert.Throws<InvalidOperationException>(() => service.ScheduleActivity(
+            trip, CreateActivity(), trip.StartDate.AddHours(startHour), 40));
+
+        Assert.Empty(trip.ScheduledActivities);
+    }
+
+    [Fact]
+    public void UpdateScheduledActivity_WhenNewTimeConflicts_PreservesOriginalSchedule()
+    {
+        var trip = CreateTrip();
+        var service = new ActivitySchedulingService();
+        var first = service.ScheduleActivity(trip, CreateActivity(), trip.StartDate.AddHours(10), 40);
+        var second = service.ScheduleActivity(trip, CreateActivity(), trip.StartDate.AddHours(12), 40);
+        var originalStart = second.StartTime;
+
+        Assert.Throws<InvalidOperationException>(() => service.UpdateScheduledActivity(
+            trip, second.Id, first.StartTime.AddMinutes(30), 40));
+
+        Assert.Equal(originalStart, second.StartTime);
+        Assert.Equal(2, trip.ScheduledActivities.Count);
+        Assert.Contains(first, trip.ScheduledActivities);
+        Assert.Contains(second, trip.ScheduledActivities);
+    }
+
+    [Fact]
+    public void UpdateScheduledActivity_WhenTimeIsValid_UpdatesExistingEntry()
+    {
+        var trip = CreateTrip();
+        var service = new ActivitySchedulingService();
+        var scheduled = service.ScheduleActivity(trip, CreateActivity(), trip.StartDate.AddHours(10), 40);
+        var newStart = trip.StartDate.AddHours(11);
+
+        var updated = service.UpdateScheduledActivity(trip, scheduled.Id, newStart, 40);
+
+        Assert.Same(scheduled, updated);
+        Assert.Same(updated, Assert.Single(trip.ScheduledActivities));
+        Assert.Equal(newStart, updated.StartTime);
+        Assert.Equal(newStart.AddHours(1), updated.EndTime);
+    }
+
+    [Fact]
+    public void RemoveScheduledActivity_WhenEntryExists_RemovesItAndReportsMissingEntry()
+    {
+        var trip = CreateTrip();
+        var service = new ActivitySchedulingService();
+        var scheduled = service.ScheduleActivity(trip, CreateActivity(), trip.StartDate.AddHours(10), 40);
+
+        Assert.True(service.RemoveScheduledActivity(trip, scheduled.Id));
+        Assert.False(service.RemoveScheduledActivity(trip, scheduled.Id));
+        Assert.Empty(trip.ScheduledActivities);
+        Assert.Throws<KeyNotFoundException>(() => service.UpdateScheduledActivity(
+            trip, scheduled.Id, trip.StartDate.AddHours(11), 40));
+    }
+
+    [Theory]
+    [InlineData(23, false)]
+    [InlineData(1, false)]
+    [InlineData(12, true)]
+    public void HasOpeningHoursConflict_WhenOpenOvernight_UsesCorrectOpeningDay(
+        int startHour,
+        bool expectedConflict)
+    {
+        var activity = new TripActivity(
+            "Night tour",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            openingTime: TimeSpan.FromHours(22),
+            closingTime: TimeSpan.FromHours(2));
+        var scheduled = new ScheduledActivity(activity, new DateTime(2026, 12, 1).AddHours(startHour));
+        var service = new ActivitySchedulingService();
+
+        Assert.Equal(expectedConflict, service.HasOpeningHoursConflict(scheduled));
+    }
+
+    private static Trip CreateTrip()
+    {
+        return new Trip
+        {
+            StartDate = new DateTime(2026, 12, 1),
+            EndDate = new DateTime(2026, 12, 1)
+        };
+    }
+
+    private static TripActivity CreateActivity()
+    {
+        return new TripActivity(
+            "Museum",
+            Category.Activities,
+            new GeoLocation(54.6872, 25.2797),
+            TimeSpan.FromHours(1),
+            estimatedCost: 12m);
+    }
 }
